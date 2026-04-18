@@ -49,6 +49,7 @@ export function useWarGame() {
   const [isStatsLoading, setIsStatsLoading] = useState(false)
   const [profileData, setProfileData] = useState(null)
   const [isProfileLoading, setIsProfileLoading] = useState(false)
+  const [theme, setTheme] = useState('none')
 
   const showToast = useCallback((msg) => {
     setToast(msg)
@@ -100,6 +101,7 @@ export function useWarGame() {
       if (s.phase === 'finished' && lastGameOverRef.current) {
         setGameOver(lastGameOverRef.current)
       }
+      if (s.theme) setTheme(s.theme)
       if (s.phase !== 'finished') {
         setGameOver(null)
         lastGameOverRef.current = null
@@ -599,6 +601,7 @@ export function useWarGame() {
     isProfileLoading,
     fetchUserProfile,
     updateUsername,
-    fetchMe
+    fetchMe,
+    theme
   }
 }
