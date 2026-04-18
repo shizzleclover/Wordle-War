@@ -39,6 +39,7 @@ const WORD_THEMES = [
   { value: 'science', label: 'Science' },
   { value: 'movies', label: 'Movies' },
   { value: 'nature', label: 'Nature' },
+  { value: 'naija', label: 'Nigerian / Naija' },
 ]
 
 function CustomSelect({ id, label, value, options, onChange }) {
