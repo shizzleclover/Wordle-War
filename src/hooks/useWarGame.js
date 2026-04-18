@@ -335,10 +335,9 @@ export function useWarGame() {
       showToast(`${by} wants a rematch`)
     })
 
-    socket.on('setup-abandoned', ({ by }) => {
-      showToast(`${by} left during setup`)
+    socket.on('setup-abandoned', ({ by, self }) => {
+      showToast(self ? 'You left the game' : `${by} left during setup`)
       resetLobby()
-      socket.emit('request-room-state')
     })
 
     socket.on('opponent-disconnected', ({ username, graceMs, graceEndsAt }) => {
@@ -560,7 +559,10 @@ export function useWarGame() {
   }, [])
 
   const forfeitGame = useCallback(() => {
-    socketRef.current?.emit('leave-room')
+    if (socketRef.current) {
+      socketRef.current.emit('leave-room')
+      // Important: don't resetLobby() here, wait for server's setup-abandoned or game-over
+    }
   }, [])
 
   const getSuggestion = useCallback(() => {
