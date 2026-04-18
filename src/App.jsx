@@ -420,8 +420,8 @@ function App() {
         </footer>
 
         {/* Global UI Components */}
-        <HowToPlayModal isOpen={showHowTo} onClose={() => setShowHowTo(false)} />
-        <HowToPlayFab />
+        <HowToPlayModal open={showHowTo} onClose={() => setShowHowTo(false)} />
+        <HowToPlayFab onClick={() => setShowHowTo(true)} />
         <ToastContainer toasts={game.toasts} removeToast={game.removeToast} />
 
         {/* Surrender Button Overlay */}
