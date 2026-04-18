@@ -2,7 +2,7 @@ export const TOKEN_KEY = 'wordle-duel-token'
 
 /** API + Socket.IO base (no trailing slash). */
 function apiBase() {
-  return 'http://localhost:3001'
+  return 'https://wordle-war-be.onrender.com'
 }
 
 export function getSocketUrl() {
