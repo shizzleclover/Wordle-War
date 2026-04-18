@@ -1,3 +1,6 @@
+import React from 'react'
+import { WordleBoard } from './WordleBoard'
+import { WarKeyboard } from './WarKeyboard'
 import { ReactionPicker } from './ReactionPicker'
 import { ReactionOverlay } from './ReactionOverlay'
 
