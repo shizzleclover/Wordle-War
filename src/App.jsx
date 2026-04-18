@@ -1054,7 +1054,7 @@ export default function App() {
                             guesses={[]}
                             currentDraft={game.secretDraft}
                           />
-                          <DuelKeyboard
+                          <WarKeyboard
                             letterStates={{}}
                             onKey={typeLetter}
                             onBackspace={() => game.setSecretDraft((d) => d.slice(0, -1))}

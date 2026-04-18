@@ -154,7 +154,7 @@ export function useWarGame() {
     const socket = io(getSocketUrl(), {
       auth: { token },
       autoConnect: true,
-      transports: ['websocket', 'polling'],
+      transports: ['polling', 'websocket'],
     })
     socketRef.current = socket
 
