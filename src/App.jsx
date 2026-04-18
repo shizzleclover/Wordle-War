@@ -272,6 +272,7 @@ export default function App() {
   const [isEditingProfile, setIsEditingProfile] = useState(false)
   const [editedUsername, setEditedUsername] = useState('')
   const [showForfeitConfirm, setShowForfeitConfirm] = useState(false)
+  const [showAllMatches, setShowAllMatches] = useState(false)
 
   const game = useWarGame()
 
@@ -895,31 +896,119 @@ export default function App() {
                       </div>
 
                       <div className="rounded-xl border-2 border-border bg-card overflow-hidden">
-                        <h4 className="bg-popover p-4 text-sm font-bold uppercase border-b-2 border-border tracking-wider text-muted-foreground">Recent Games</h4>
-                        {game.profileData.recentMatches?.length > 0 ? (
-                          <ul className="divide-y-2 divide-border">
-                            {game.profileData.recentMatches.map(m => (
-                              <li key={m.id} className="p-4 flex items-center justify-between hover:bg-popover/50 transition-colors">
-                                <div className="flex items-center gap-4">
-                                  <div className={`w-3 h-3 rounded-full shadow-sm ${m.isDraw ? 'bg-amber-400' : m.winner === game.profileData.username ? 'bg-tile-correct' : 'bg-destructive'}`} />
-                                  <div>
-                                    <div className="font-semibold">{m.opponent}</div>
-                                    <div className="text-xs text-muted-foreground font-mono mt-0.5">{m.endReason}</div>
+                        <h4 className="bg-popover p-4 text-sm font-bold uppercase border-b-2 border-border tracking-wider text-muted-foreground flex items-center justify-between">
+                          <span>{showAllMatches ? 'All Games' : 'Recent Games'}</span>
+                          {!showAllMatches && game.profileData.recentMatches?.length > 0 && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setShowAllMatches(true)
+                                game.fetchMatchHistory(game.profileData.username, 1)
+                              }}
+                              className="text-[10px] font-bold uppercase tracking-wider text-primary hover:text-primary/80 transition-colors"
+                            >
+                              View All →
+                            </button>
+                          )}
+                          {showAllMatches && (
+                            <button
+                              type="button"
+                              onClick={() => setShowAllMatches(false)}
+                              className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors"
+                            >
+                              ← Back
+                            </button>
+                          )}
+                        </h4>
+
+                        {showAllMatches ? (
+                          /* Full paginated match history */
+                          <>
+                            {game.isMatchHistoryLoading ? (
+                              <div className="p-6 space-y-3">
+                                {[1,2,3,4,5].map(i => (
+                                  <div key={i} className="h-12 w-full rounded-lg bg-muted animate-shimmer" />
+                                ))}
+                              </div>
+                            ) : game.matchHistory?.length > 0 ? (
+                              <>
+                                <ul className="divide-y-2 divide-border">
+                                  {game.matchHistory.map(m => (
+                                    <li key={m.id} className="p-4 flex items-center justify-between hover:bg-popover/50 transition-colors">
+                                      <div className="flex items-center gap-4">
+                                        <div className={`w-3 h-3 rounded-full shadow-sm ${m.isDraw ? 'bg-amber-400' : m.winner === game.profileData.username ? 'bg-tile-correct' : 'bg-destructive'}`} />
+                                        <div>
+                                          <div className="font-semibold">{m.opponent}</div>
+                                          <div className="text-xs text-muted-foreground font-mono mt-0.5">{m.endReason} · {m.wordLength} letters</div>
+                                        </div>
+                                      </div>
+                                      <div className="text-right">
+                                        <div className={`font-mono text-sm font-bold ${m.myEloChange > 0 ? 'text-tile-correct' : m.myEloChange < 0 ? 'text-destructive' : 'text-muted-foreground'}`}>
+                                          {m.myEloChange > 0 ? '+' : ''}{m.myEloChange}
+                                        </div>
+                                        <div className="text-xs text-muted-foreground font-mono mt-0.5">
+                                          {new Date(m.date).toLocaleDateString()}
+                                        </div>
+                                      </div>
+                                    </li>
+                                  ))}
+                                </ul>
+                                {/* Pagination controls */}
+                                {game.matchHistoryMeta && game.matchHistoryMeta.totalPages > 1 && (
+                                  <div className="flex items-center justify-between border-t-2 border-border bg-popover px-4 py-3">
+                                    <button
+                                      type="button"
+                                      onClick={() => game.fetchMatchHistory(game.profileData.username, game.matchHistoryMeta.page - 1)}
+                                      disabled={game.matchHistoryMeta.page <= 1}
+                                      className="rounded-lg border-2 border-border bg-card px-3 py-1.5 text-xs font-bold disabled:opacity-30 transition-all hover:-translate-y-0.5 active:scale-95"
+                                    >
+                                      ← Prev
+                                    </button>
+                                    <span className="text-xs font-bold text-muted-foreground">
+                                      Page {game.matchHistoryMeta.page} of {game.matchHistoryMeta.totalPages} · {game.matchHistoryMeta.total} games
+                                    </span>
+                                    <button
+                                      type="button"
+                                      onClick={() => game.fetchMatchHistory(game.profileData.username, game.matchHistoryMeta.page + 1)}
+                                      disabled={game.matchHistoryMeta.page >= game.matchHistoryMeta.totalPages}
+                                      className="rounded-lg border-2 border-border bg-card px-3 py-1.5 text-xs font-bold disabled:opacity-30 transition-all hover:-translate-y-0.5 active:scale-95"
+                                    >
+                                      Next →
+                                    </button>
                                   </div>
-                                </div>
-                                <div className="text-right">
-                                  <div className={`font-mono text-sm font-bold ${m.myEloChange > 0 ? 'text-tile-correct' : 'text-destructive'}`}>
-                                    {m.myEloChange > 0 ? '+' : ''}{m.myEloChange}
-                                  </div>
-                                  <div className="text-xs text-muted-foreground font-mono mt-0.5">
-                                    {new Date(m.date).toLocaleDateString()}
-                                  </div>
-                                </div>
-                              </li>
-                            ))}
-                          </ul>
+                                )}
+                              </>
+                            ) : (
+                              <p className="p-6 text-center text-sm text-muted-foreground">No games found.</p>
+                            )}
+                          </>
                         ) : (
-                          <p className="p-6 text-center text-sm text-muted-foreground">No recent games found.</p>
+                          /* Preview: recent 10 from profile */
+                          game.profileData.recentMatches?.length > 0 ? (
+                            <ul className="divide-y-2 divide-border">
+                              {game.profileData.recentMatches.map(m => (
+                                <li key={m.id} className="p-4 flex items-center justify-between hover:bg-popover/50 transition-colors">
+                                  <div className="flex items-center gap-4">
+                                    <div className={`w-3 h-3 rounded-full shadow-sm ${m.isDraw ? 'bg-amber-400' : m.winner === game.profileData.username ? 'bg-tile-correct' : 'bg-destructive'}`} />
+                                    <div>
+                                      <div className="font-semibold">{m.opponent}</div>
+                                      <div className="text-xs text-muted-foreground font-mono mt-0.5">{m.endReason}</div>
+                                    </div>
+                                  </div>
+                                  <div className="text-right">
+                                    <div className={`font-mono text-sm font-bold ${m.myEloChange > 0 ? 'text-tile-correct' : 'text-destructive'}`}>
+                                      {m.myEloChange > 0 ? '+' : ''}{m.myEloChange}
+                                    </div>
+                                    <div className="text-xs text-muted-foreground font-mono mt-0.5">
+                                      {new Date(m.date).toLocaleDateString()}
+                                    </div>
+                                  </div>
+                                </li>
+                              ))}
+                            </ul>
+                          ) : (
+                            <p className="p-6 text-center text-sm text-muted-foreground">No recent games found.</p>
+                          )
                         )}
                       </div>
                     </div>

@@ -489,6 +489,26 @@ export function useWarGame() {
     }
   }, [showToast])
 
+  const [matchHistory, setMatchHistory] = useState(null)
+  const [matchHistoryMeta, setMatchHistoryMeta] = useState(null)
+  const [isMatchHistoryLoading, setIsMatchHistoryLoading] = useState(false)
+
+  const fetchMatchHistory = useCallback(async (username, page = 1) => {
+    setIsMatchHistoryLoading(true)
+    try {
+      const res = await fetch(apiUrl(`/api/users/${encodeURIComponent(username)}/matches?page=${page}&limit=20`))
+      if (!res.ok) {
+        showToast('Could not load match history')
+        return
+      }
+      const data = await res.json()
+      setMatchHistory(data.matches)
+      setMatchHistoryMeta({ page: data.page, total: data.total, totalPages: data.totalPages })
+    } finally {
+      setIsMatchHistoryLoading(false)
+    }
+  }, [showToast])
+
   const updateUsername = useCallback(async (newUsername) => {
     if (!token) return
     try {
@@ -633,6 +653,10 @@ export function useWarGame() {
     fetchUserProfile,
     updateUsername,
     fetchMe,
-    theme
+    theme,
+    matchHistory,
+    matchHistoryMeta,
+    isMatchHistoryLoading,
+    fetchMatchHistory,
   }
 }
