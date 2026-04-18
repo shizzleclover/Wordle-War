@@ -19,7 +19,7 @@ export function useWarGame() {
   const [authLoading, setAuthLoading] = useState(!!localStorage.getItem(TOKEN_KEY))
   const [socketConnected, setSocketConnected] = useState(false)
 
-  const [toast, setToast] = useState(null)
+  const [toasts, setToasts] = useState([])
   const [uiPhase, setUiPhase] = useState('lobby')
   const [roomCode, setRoomCode] = useState(null)
   const [wordLength, setWordLength] = useState(5)
@@ -50,11 +50,24 @@ export function useWarGame() {
   const [profileData, setProfileData] = useState(null)
   const [isProfileLoading, setIsProfileLoading] = useState(false)
   const [theme, setTheme] = useState('none')
+  const [incomingReaction, setIncomingReaction] = useState(null)
+  const [dailyInfo, setDailyInfo] = useState(null)
+  const [isDailyLoading, setIsDailyLoading] = useState(false)
+  
+  // Late moved states to fix Rules of Hooks order
+  const [matchHistory, setMatchHistory] = useState(null)
+  const [matchHistoryMeta, setMatchHistoryMeta] = useState(null)
+  const [isMatchHistoryLoading, setIsMatchHistoryLoading] = useState(false)
 
-  const showToast = useCallback((msg) => {
-    setToast(msg)
-    window.setTimeout(() => setToast(null), 4200)
+  const removeToast = useCallback((id) => {
+    setToasts(prev => prev.filter(t => t.id !== id))
   }, [])
+
+  const showToast = useCallback((message, type = 'info') => {
+    const id = Math.random().toString(36).substring(2, 9)
+    setToasts(prev => [...prev.slice(-4), { id, message, type }]) // Keep last 5
+    setTimeout(() => removeToast(id), 5000)
+  }, [removeToast])
 
   const resetLobby = useCallback(() => {
     setUiPhase('lobby')
@@ -156,7 +169,7 @@ export function useWarGame() {
     const socket = io(getSocketUrl(), {
       auth: { token },
       autoConnect: true,
-      transports: ['polling', 'websocket'],
+      transports: ['websocket', 'polling'] // Explicit order to fix 400 Bad Request
     })
     socketRef.current = socket
 
@@ -367,6 +380,10 @@ export function useWarGame() {
 
 
 
+    socket.on('game:reaction', ({ emoji }) => {
+      setIncomingReaction({ id: Date.now(), emoji })
+    })
+
     socket.on('error', (payload) => {
       const msg =
         typeof payload === 'string'
@@ -467,7 +484,21 @@ export function useWarGame() {
       })
       if (!res.ok) return
       const data = await res.json()
-      setStats(data)
+      setStats(prev => ({ ...prev, personal: data }))
+    } finally {
+      setIsStatsLoading(false)
+    }
+  }, [token])
+
+  const fetchLeaderboard = useCallback(async () => {
+    setIsStatsLoading(true)
+    try {
+      const res = await fetch(apiUrl('/api/leaderboard'), {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (!res.ok) return
+      const data = await res.json()
+      setStats(prev => ({ ...prev, leaderboard: data.leaderboard }))
     } finally {
       setIsStatsLoading(false)
     }
@@ -489,9 +520,6 @@ export function useWarGame() {
     }
   }, [showToast])
 
-  const [matchHistory, setMatchHistory] = useState(null)
-  const [matchHistoryMeta, setMatchHistoryMeta] = useState(null)
-  const [isMatchHistoryLoading, setIsMatchHistoryLoading] = useState(false)
 
   const fetchMatchHistory = useCallback(async (username, page = 1) => {
     setIsMatchHistoryLoading(true)
@@ -593,12 +621,66 @@ export function useWarGame() {
     socketRef.current?.emit('use-powerup', { type })
   }, [])
 
+  const sendReaction = useCallback((emoji) => {
+    socketRef.current?.emit('game:reaction', { emoji })
+  }, [])
+
+  const followUser = useCallback(async (username) => {
+    if (!token) return
+    try {
+      const res = await fetch(apiUrl(`/api/social/follow/${username}`), {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      if (res.ok) {
+        showToast(`Followed ${username}`)
+        fetchUserProfile(username) // Refetch profile to show updated state
+      }
+    } catch (err) {
+      console.error('Follow error:', err)
+    }
+  }, [token, showToast, fetchUserProfile])
+
+  const unfollowUser = useCallback(async (username) => {
+    if (!token) return
+    try {
+      const res = await fetch(apiUrl(`/api/social/follow/${username}`), {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      if (res.ok) {
+        showToast(`Unfollowed ${username}`)
+        fetchUserProfile(username)
+      }
+    } catch (err) {
+      console.error('Unfollow error:', err)
+    }
+  }, [token, showToast, fetchUserProfile])
+
+  const fetchDailyInfo = useCallback(async () => {
+    if (!token) return
+    setIsDailyLoading(true)
+    try {
+      const res = await fetch(apiUrl('/api/daily/info'), {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      if (res.ok) {
+        const data = await res.json()
+        setDailyInfo(data)
+      }
+    } finally {
+      setIsDailyLoading(false)
+    }
+  }, [token])
+
   return {
     token,
     user,
     authLoading,
     socketConnected,
-    toast,
+    showToast,
+    toasts,
+    removeToast,
     uiPhase,
     roomCode,
     wordLength,
@@ -624,6 +706,7 @@ export function useWarGame() {
     register,
     logout,
     fetchStats,
+    fetchLeaderboard,
     createRoom,
     joinRoom,
     submitSecretWord,
@@ -641,10 +724,6 @@ export function useWarGame() {
     isScrambled,
     isBlindfolded,
     usePowerup,
-    disconnectBanner,
-    stats,
-    statsOpen,
-    wordLength, // adding this just in case, since App might use it
     isLoadingAuth,
     isStatsLoading,
     profileData,
@@ -658,5 +737,13 @@ export function useWarGame() {
     matchHistoryMeta,
     isMatchHistoryLoading,
     fetchMatchHistory,
+    incomingReaction,
+    setIncomingReaction,
+    sendReaction,
+    followUser,
+    unfollowUser,
+    dailyInfo,
+    fetchDailyInfo,
+    isDailyLoading
   }
 }

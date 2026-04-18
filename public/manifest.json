@@ -1,0 +1,18 @@
+{
+  "name": "Wordle War",
+  "short_name": "Wordle War",
+  "description": "Real-time competitive Wordle battles with power-ups.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0a0a",
+  "theme_color": "#121212",
+  "icons": [
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "orientation": "portrait"
+}

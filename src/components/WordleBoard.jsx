@@ -1,88 +1,68 @@
-function cellClass(fb) {
-  if (fb === 'correct') return 'bg-tile-correct text-primary-foreground border-foreground'
-  if (fb === 'present') return 'bg-tile-present text-foreground border-foreground'
-  if (fb === 'absent') return 'bg-tile-absent text-primary-foreground border-foreground/40'
-  return 'bg-popover text-foreground border-border'
-}
+import React from 'react'
 
-function sizeClasses(wordLength) {
-  if (wordLength > 12) {
-    return {
-      cell: 'h-7 w-7 text-xs sm:h-8 sm:w-8 sm:text-sm',
-      colGap: 'gap-y-0.5 sm:gap-y-1',
-      rowGap: 'gap-0.5 sm:gap-1',
-    }
-  }
-  if (wordLength > 8) {
-    return {
-      cell: 'h-9 w-9 text-sm sm:h-10 sm:w-10 sm:text-base',
-      colGap: 'gap-y-1 sm:gap-y-1.5',
-      rowGap: 'gap-1 sm:gap-1.5',
-    }
-  }
-  return {
-    cell: 'h-12 w-12 text-lg sm:h-14 sm:w-14 sm:text-xl',
-    colGap: 'gap-y-1.5 sm:gap-y-2',
-    rowGap: 'gap-1.5 sm:gap-2',
-  }
-}
+function BoardTile({ letter, state, index, animate }) {
+  const delay = index * 100 // 100ms staggered delay
 
-export function WordleBoard({ wordLength, guesses, currentDraft }) {
-  const { cell, colGap, rowGap } = sizeClasses(wordLength)
-  const minRows = 6
-  const rows = []
-
-  for (const g of guesses) {
-    const letters = g.word.toUpperCase().split('')
-    const fb = g.feedback || []
-    rows.push({ letters, feedback: fb, draft: false })
-  }
-
-  if (currentDraft !== undefined && currentDraft !== null) {
-    const letters = []
-    for (let i = 0; i < wordLength; i++) {
-      letters.push((currentDraft[i] || ' ').toUpperCase())
-    }
-    rows.push({ letters, feedback: null, draft: true })
-  }
-
-  while (rows.length < minRows) {
-    rows.push({
-      letters: Array(wordLength).fill(''),
-      feedback: null,
-      draft: false,
-      empty: true,
-    })
+  const stateClasses = {
+    correct: 'bg-tile-correct text-white border-tile-correct',
+    present: 'bg-tile-present text-white border-tile-present',
+    absent: 'bg-tile-absent text-white border-tile-absent',
+    empty: 'border-border bg-card text-foreground',
+    active: 'border-primary bg-card text-foreground animate-pop'
   }
 
   return (
-    <div className={`flex flex-col ${colGap}`} role="grid" aria-label="Guess grid">
-      {rows.map((row, ri) => (
-        <div key={ri} className={`flex justify-center ${rowGap}`} role="row">
-          {Array.from({ length: wordLength }, (_, i) => {
-            const ch = row.letters[i]
-            const fb = row.feedback?.[i]
-            const isEmpty = !ch || ch === ' '
-            return (
-              <div
-                key={i}
-                role="gridcell"
-                className={[
-                  'flex items-center justify-center rounded-lg border-2 font-semibold uppercase',
-                  cell,
-                  row.empty
-                    ? 'border-border/50 bg-popover/40'
-                    : row.draft && isEmpty
-                      ? 'border-border bg-popover'
-                      : row.draft
-                        ? 'border-primary bg-popover shadow-[var(--shadow-xs)]'
-                        : cellClass(fb),
-                ].join(' ')}
-              >
-                {!row.empty && !isEmpty ? ch : ''}
-              </div>
-            )
-          })}
+    <div
+      className={[
+        'flex h-12 w-12 items-center justify-center rounded-lg border-2 text-xl font-bold uppercase transition-all duration-500',
+        stateClasses[state || 'empty'],
+        animate ? 'animate-flip' : ''
+      ].join(' ')}
+      style={animate ? { animationDelay: `${delay}ms` } : {}}
+    >
+      {letter}
+    </div>
+  )
+}
+
+export function WordleBoard({ wordLength, guesses = [], currentDraft = null }) {
+  const rows = 6
+  // Ensure we don't have negative count
+  const emptyRowsCount = Math.max(0, rows - guesses.length - (currentDraft !== null ? 1 : 0))
+
+  return (
+    <div className="flex flex-col gap-2">
+      {guesses.map((g, rowIndex) => (
+        <div key={rowIndex} className="flex justify-center gap-2">
+          {g.feedback.map((f, i) => (
+            <BoardTile
+              key={i}
+              letter={g.word[i]}
+              state={f}
+              index={i}
+              animate={true}
+            />
+          ))}
+        </div>
+      ))}
+
+      {currentDraft !== null && (
+        <div className="flex justify-center gap-2">
+          {Array.from({ length: wordLength }).map((_, i) => (
+            <BoardTile
+              key={i}
+              letter={currentDraft[i] || ''}
+              state={currentDraft[i] ? 'active' : 'empty'}
+            />
+          ))}
+        </div>
+      )}
+
+      {Array.from({ length: emptyRowsCount }).map((_, rowIndex) => (
+        <div key={rowIndex} className="flex justify-center gap-2">
+          {Array.from({ length: wordLength }).map((_, i) => (
+            <BoardTile key={i} letter="" state="empty" />
+          ))}
         </div>
       ))}
     </div>

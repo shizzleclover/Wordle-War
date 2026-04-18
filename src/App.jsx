@@ -1,23 +1,25 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useWarGame } from './hooks/useWarGame'
-import { WarKeyboard } from './components/WarKeyboard'
-import { WordleBoard } from './components/WordleBoard'
 import { HowToPlayFab, HowToPlayModal } from './components/HowToPlayModal'
 import { letterKeyStates } from './utils/wordleTiles'
 import { WORD_LEN_MAX, WORD_LEN_MIN, parseWordLengthInput } from './gameConstants'
 
+// New Components
+import { AuthCard } from './components/AuthCard'
+import { LobbyView } from './components/LobbyView'
+import { SetupView } from './components/SetupView'
+import { PlayingView } from './components/PlayingView'
+import { GameOverView } from './components/GameOverView'
+import { StatsView } from './components/StatsView'
+import { ProfileView } from './components/ProfileView'
+import { ToastContainer } from './components/ToastContainer'
+import { ErrorBoundary } from './components/ErrorBoundary'
+import { DailyChallengeView } from './components/DailyChallengeView'
+
 const QUICK_LENGTHS = [4, 5, 6, 7]
 const DARK_KEY = 'wordle-war-theme'
 
-function getRankInfo(elo = 0) {
-  if (elo >= 1000) return { label: 'Master', color: 'text-purple-400', bg: 'bg-purple-500/10', border: 'border-purple-500/30' }
-  if (elo >= 750) return { label: 'Diamond', color: 'text-cyan-400', bg: 'bg-cyan-500/10', border: 'border-cyan-500/30' }
-  if (elo >= 500) return { label: 'Platinum', color: 'text-sky-400', bg: 'bg-sky-500/10', border: 'border-sky-500/30' }
-  if (elo >= 300) return { label: 'Gold', color: 'text-amber-400', bg: 'bg-amber-500/10', border: 'border-amber-500/30' }
-  if (elo >= 150) return { label: 'Silver', color: 'text-slate-400', bg: 'bg-slate-500/10', border: 'border-slate-500/30' }
-  return { label: 'Bronze', color: 'text-orange-500', bg: 'bg-orange-500/10', border: 'border-orange-500/30' }
-}
-
+import { getRankInfo } from './utils/rankUtils'
 
 const GAME_MODES = [
   { value: 'standard', label: 'Standard (No timer)' },
@@ -157,1307 +159,290 @@ function PillNav({ active, onPlay, onStats, onProfile, onPlayers }) {
   )
 }
 
-function AuthCard({ onLogin, onRegister }) {
-  const [mode, setMode] = useState('login')
-  const [username, setUsername] = useState('')
-  const [password, setPassword] = useState('')
-  const [showPassword, setShowPassword] = useState(false)
-  const [err, setErr] = useState('')
-  const [busy, setBusy] = useState(false)
+function App() {
+  const game = useWarGame()
+  const [activeTab, setActiveTab] = useState('play')
+  const [showHowTo, setShowHowTo] = useState(false)
+  const [isDailyMode, setIsDailyMode] = useState(false)
 
-  const submit = async (e) => {
-    e.preventDefault()
-    setErr('')
-    setBusy(true)
-    try {
-      if (mode === 'login') await onLogin(username, password)
-      else await onRegister(username, password)
-    } catch (er) {
-      setErr(er.message || 'Request failed')
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  return (
-    <div className="rounded-xl border-2 border-border bg-popover p-6 shadow-[var(--shadow-md)] sm:p-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="mb-6 flex gap-2 rounded-lg border-2 border-border bg-card p-1 shadow-[var(--shadow-xs)]">
-        {['login', 'register'].map((m) => (
-          <button
-            key={m}
-            type="button"
-            onClick={() => {
-              setMode(m)
-              setErr('')
-            }}
-            className={[
-              'flex-1 rounded-md border-2 py-2 text-sm font-semibold capitalize transition-all duration-200',
-              mode === m
-                ? 'border-primary bg-popover text-foreground shadow-[var(--shadow-xs)]'
-                : 'border-transparent text-muted-foreground hover:bg-secondary/30',
-            ].join(' ')}
-          >
-            {m}
-          </button>
-        ))}
-      </div>
-      <form onSubmit={submit} className="flex flex-col gap-4">
-        <div>
-          <label htmlFor="username" className="block text-left text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1.5">
-            Username
-          </label>
-          <input
-            id="username"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            autoComplete="username"
-            placeholder="e.g. Gamer123"
-            className="w-full rounded-lg border-2 border-border bg-input px-3.5 py-2.5 font-sans text-sm text-foreground shadow-[var(--shadow-xs)] outline-none focus-visible:ring-2 focus-visible:ring-ring transition-all hover:border-primary/50"
-          />
-        </div>
-        <div>
-          <label htmlFor="password" className="block text-left text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1.5">
-            Password
-          </label>
-          <div className="relative group">
-            <input
-              id="password"
-              type={showPassword ? 'text' : 'password'}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-              autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
-              className="w-full rounded-lg border-2 border-border bg-input pl-3.5 pr-11 py-2.5 font-sans text-sm text-foreground shadow-[var(--shadow-xs)] outline-none focus-visible:ring-2 focus-visible:ring-ring transition-all hover:border-primary/50"
-            />
-            <button
-              type="button"
-              onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-2 top-1/2 -translate-y-1/2 flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-all hover:bg-secondary hover:text-foreground active:scale-95"
-              title={showPassword ? 'Hide password' : 'Show password'}
-            >
-              {showPassword ? (
-                <span className="text-xl">🙈</span>
-              ) : (
-                <span className="text-xl">👁️</span>
-              )}
-            </button>
-          </div>
-        </div>
-        {err ? (
-          <div className="rounded-lg border-2 border-destructive bg-destructive/10 px-3 py-2.5 text-xs font-semibold text-destructive animate-in shake duration-300">
-            ⚠ {err}
-          </div>
-        ) : null}
-        <button
-          type="submit"
-          disabled={busy}
-          className={`mt-2 rounded-lg border-2 border-foreground py-3.5 font-bold shadow-[var(--shadow-md)] transition-all duration-300 hover:-translate-y-0.5 active:scale-95 ${busy ? 'bg-primary/50 text-foreground overflow-hidden relative animate-pulse opacity-80' : 'bg-primary text-primary-foreground hover:shadow-lg hover:brightness-110'}`}
-        >
-          {busy ? (mode === 'login' ? 'SIGNING IN...' : 'CREATING ACCOUNT...') : mode === 'login' ? 'SIGN IN' : 'CREATE ACCOUNT'}
-        </button>
-      </form>
-    </div>
-  )
-}
-
-export default function App() {
-  const [nav, setNav] = useState('play')
-  const [joinCode, setJoinCode] = useState('')
-  const [dark, setDark] = useState(() => localStorage.getItem(DARK_KEY) === '1')
-  const [helpOpen, setHelpOpen] = useState(false)
+  // Local UI state
   const [lengthInput, setLengthInput] = useState('5')
   const [gameMode, setGameMode] = useState('standard')
   const [theme, setTheme] = useState('none')
-  const [profileTargetInput, setProfileTargetInput] = useState('')
-  const [isEditingProfile, setIsEditingProfile] = useState(false)
-  const [editedUsername, setEditedUsername] = useState('')
-  const [showForfeitConfirm, setShowForfeitConfirm] = useState(false)
-  const [showAllMatches, setShowAllMatches] = useState(false)
+  const [joinCodeInput, setJoinCodeInput] = useState('')
+  const [darkMode, setDarkMode] = useState(() => {
+    const saved = localStorage.getItem(DARK_KEY)
+    return saved !== null ? saved === 'true' : true
+  })
 
-  const game = useWarGame()
+  // Theme effect
+  useEffect(() => {
+    if (darkMode) document.documentElement.classList.add('dark')
+    else document.documentElement.classList.remove('dark')
+    localStorage.setItem(DARK_KEY, String(darkMode))
+  }, [darkMode])
+
+  // Sync tab with game phase
+  useEffect(() => {
+    if (game.uiPhase !== 'lobby' && activeTab !== 'play') {
+      setActiveTab('play')
+    }
+    if (game.uiPhase !== 'lobby') {
+      setIsDailyMode(false)
+    }
+  }, [game.uiPhase, activeTab])
 
   useEffect(() => {
-    const root = document.documentElement
-    if (dark) root.classList.add('dark')
-    else root.classList.remove('dark')
-    localStorage.setItem(DARK_KEY, dark ? '1' : '0')
-  }, [dark])
+    if (game.socketConnected && game.user) {
+      game.fetchDailyInfo()
+    }
+  }, [game.socketConnected, game.user, game.fetchDailyInfo])
 
-  useEffect(() => {
-    if (game.statsOpen && game.token) void game.fetchStats()
-  }, [game.statsOpen, game.token, game.fetchStats])
-
-  const openProfileView = (username) => {
-    setNav('profile')
-    setIsEditingProfile(false)
-    if (username) {
-      game.fetchUserProfile(username)
-      // If it's the current user, also sync the global state
-      if (game.user && username === game.user.username) {
-        game.fetchMe()
+  const typeLetter = (letter) => {
+    if (game.uiPhase === 'setup') {
+      if (game.secretDraft.length < game.wordLength) {
+        game.setSecretDraft((d) => d + letter)
+      }
+    } else if (game.uiPhase === 'playing' && game.yourTurn) {
+      if (game.draftGuess.length < game.wordLength) {
+        game.setDraftGuess((d) => d + letter)
       }
     }
   }
 
-  const openStats = () => {
-    setNav('stats')
-    game.setStatsOpen(true)
-    game.fetchMe() // Sync global stats
+  const openProfileView = (username) => {
+    if (!username) return
+    setActiveTab('profile')
+    game.fetchUserProfile(username)
   }
 
-  const openPlayersView = () => {
-    setNav('players')
-    game.setProfileData(null)
+  const handleLogout = () => {
+    if (window.confirm('Are you sure you want to logout?')) {
+      game.logout()
+    }
   }
 
   const letterStates = letterKeyStates(game.guesses)
 
-  const draftRef = useRef(game.draftGuess)
-  const secretRef = useRef(game.secretDraft)
-
-  useEffect(() => {
-    draftRef.current = game.draftGuess
-  }, [game.draftGuess])
-
-  useEffect(() => {
-    secretRef.current = game.secretDraft
-  }, [game.secretDraft])
-
-  /* eslint-disable react-hooks/exhaustive-deps -- game setters + slice of game state */
-  const typeLetter = useCallback(
-    (L) => {
-      if (game.uiPhase === 'playing' && game.yourTurn) {
-        game.setDraftGuess((d) => (d.length < game.wordLength ? d + L : d))
-        return
-      }
-      if (game.uiPhase === 'setup' && !game.hasSetWord) {
-        game.setSecretDraft((d) => (d.length < game.wordLength ? d + L : d))
-      }
-    },
-    [
-      game.uiPhase,
-      game.yourTurn,
-      game.hasSetWord,
-      game.wordLength,
-      game.setDraftGuess,
-      game.setSecretDraft,
-    ]
-  )
-  /* eslint-enable react-hooks/exhaustive-deps */
-
-  useEffect(() => {
-    const onKey = (e) => {
-      if (e.ctrlKey || e.metaKey || e.altKey) return
-      const active =
-        (game.uiPhase === 'playing' && game.yourTurn) ||
-        (game.uiPhase === 'setup' && !game.hasSetWord)
-      if (!active) return
-      if (e.key === 'Backspace') {
-        e.preventDefault()
-        if (game.uiPhase === 'playing') game.setDraftGuess((d) => d.slice(0, -1))
-        else game.setSecretDraft((d) => d.slice(0, -1))
-        return
-      }
-      if (e.key === 'Enter') {
-        e.preventDefault()
-        if (game.uiPhase === 'playing') {
-          const w = draftRef.current
-          if (w.length === game.wordLength) game.submitGuess(w.toLowerCase())
-        } else {
-          const w = secretRef.current
-          if (w.length === game.wordLength) game.submitSecretWord(w.toLowerCase())
-        }
-        return
-      }
-      if (/^[a-zA-Z]$/.test(e.key)) {
-        e.preventDefault()
-        typeLetter(e.key.toUpperCase())
-      }
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- refs track latest draft strings for Enter
-  }, [
-    game.uiPhase,
-    game.yourTurn,
-    game.hasSetWord,
-    game.wordLength,
-    game.setDraftGuess,
-    game.setSecretDraft,
-    game.submitGuess,
-    game.submitSecretWord,
-    typeLetter,
-  ])
-
-  const closeHelp = useCallback(() => setHelpOpen(false), [])
-
-  const copyCode = () => {
-    if (!game.roomCode) return
-    void navigator.clipboard.writeText(game.roomCode)
-    game.showToast('Room code copied')
-  }
-
-
-
-  if (game.authLoading) {
-    return (
-      <div className="flex min-h-svh flex-col items-center justify-center p-6 bg-background font-sans text-foreground">
-        <div className="w-full max-w-md space-y-8 rounded-xl border-2 border-border bg-card p-10 shadow-[var(--shadow-md)]">
-          <div className="mx-auto h-8 w-3/4 rounded bg-muted animate-shimmer" />
-          <div className="space-y-4 pt-4">
-            <div className="h-10 w-full rounded-lg bg-muted animate-shimmer" />
-            <div className="h-10 w-full rounded-lg bg-muted animate-shimmer" />
-            <div className="h-12 w-full rounded-lg bg-primary/20 animate-shimmer mt-6" />
-          </div>
-        </div>
-      </div>
-    )
-  }
-
   return (
-    <div className="min-h-svh bg-background font-sans text-foreground">
-      <HowToPlayModal open={helpOpen} onClose={closeHelp} />
-
-      {game.toast ? (
-        <div
-          className="fixed bottom-6 left-1/2 z-50 max-w-[min(90vw,24rem)] -translate-x-1/2 rounded-lg border-2 border-border bg-card px-4 py-3 text-center text-sm font-medium text-card-foreground shadow-[var(--shadow-lg)]"
-          role="status"
-        >
-          {game.toast}
-        </div>
-      ) : null}
-
-      <header className="sticky top-0 z-40 border-b-2 border-border bg-sidebar/90 backdrop-blur-md">
-        <div className="mx-auto flex max-w-5xl flex-col gap-3 px-4 py-3 sm:px-6 sm:py-4">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex min-w-0 items-center gap-2">
-              <span className="truncate font-serif text-xl font-bold tracking-tight text-foreground sm:text-2xl">
-                Wordle War
-              </span>
-            </div>
-
-            <div className="flex flex-1 items-center justify-end gap-1.5 sm:gap-3">
-              <div className="flex items-center gap-1 sm:gap-2 mr-1 sm:mr-2">
-                <button
-                  type="button"
-                  onClick={() => setHelpOpen(true)}
-                  className="flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-lg border-2 border-border bg-popover text-sm sm:text-lg shadow-[var(--shadow-xs)] transition-all hover:-translate-y-0.5 active:scale-95"
-                  title="How to play"
-                >
-                  ❔
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setDark((d) => !d)}
-                  className="flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-lg border-2 border-border bg-popover text-sm sm:text-lg shadow-[var(--shadow-xs)] transition-all hover:-translate-y-0.5 active:scale-95"
-                >
-                  {dark ? '☀' : '☾'}
-                </button>
-                {(game.uiPhase === 'playing' || (game.uiPhase === 'setup' && game.roomCode)) && (
-                  <div className="relative">
-                    <button
-                      type="button"
-                      onClick={() => setShowForfeitConfirm(!showForfeitConfirm)}
-                      className="ml-1 flex h-8 px-2 sm:h-10 sm:px-3 items-center justify-center rounded-lg border-2 border-destructive bg-destructive/10 text-[10px] sm:text-xs font-bold text-destructive shadow-[var(--shadow-xs)] transition-all hover:-translate-y-0.5 active:scale-95"
-                    >
-                      🏳️ Surrender
-                    </button>
-                    {showForfeitConfirm && (
-                      <div className="absolute right-0 top-full z-[60] mt-2 w-48 rounded-xl border-2 border-border bg-popover p-4 shadow-[var(--shadow-xl)] animate-in fade-in zoom-in-95 duration-200">
-                        <p className="mb-3 text-[10px] font-bold text-muted-foreground uppercase tracking-widest leading-relaxed">
-                          Really surrender? This counts as a loss.
-                        </p>
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => {
-                              game.forfeitGame()
-                              setShowForfeitConfirm(false)
-                            }}
-                            className="flex-1 rounded-lg bg-destructive px-2 py-1.5 text-[10px] font-bold text-destructive-foreground hover:brightness-110"
-                          >
-                            Yes
-                          </button>
-                          <button
-                            onClick={() => setShowForfeitConfirm(false)}
-                            className="flex-1 rounded-lg border-2 border-border bg-muted px-2 py-1.5 text-[10px] font-bold hover:text-foreground"
-                          >
-                            No
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
+    <ErrorBoundary>
+      <div className="min-h-screen bg-background text-foreground transition-colors duration-300">
+        <header className="sticky top-0 z-40 w-full border-b-2 border-border bg-background/80 backdrop-blur-md px-4 py-3 sm:px-8">
+          <div className="mx-auto flex max-w-5xl items-center justify-between gap-4">
+            <div className="flex items-center gap-2 group cursor-pointer" onClick={() => setActiveTab('play')}>
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-lg group-hover:rotate-12 transition-transform shadow-[var(--shadow-xs)]">
+                ⚔️
               </div>
-
-              {game.user ? (
-                <div className="flex min-w-0 items-center gap-2 rounded-xl border-2 border-border bg-card p-1 pr-2 sm:p-1.5 sm:pr-3 shadow-[var(--shadow-sm)]">
-                  <div className={`flex items-center justify-center rounded-lg px-1.5 py-0.5 sm:px-2 text-[9px] sm:text-xs font-bold uppercase tracking-wider ${getRankInfo(game.user.stats?.elo).bg} ${getRankInfo(game.user.stats?.elo).color} border ${getRankInfo(game.user.stats?.elo).border}`}>
-                    <span className="hidden xs:inline">{getRankInfo(game.user.stats?.elo).label}</span>
-                    <span className="xs:hidden uppercase">{getRankInfo(game.user.stats?.elo).label.charAt(0)}</span>
-                  </div>
-                  <div className="flex flex-col min-w-0 relative">
-                    <span className="max-w-[4rem] sm:max-w-[7rem] truncate text-[10px] sm:text-xs font-bold leading-none">
-                      {game.user.username}
-                      {game.isLoadingAuth && <span className="ml-1 inline-block h-1 w-1 rounded-full bg-primary animate-ping" />}
-                    </span>
-                    <span className="font-mono text-[9px] sm:text-[10px] font-semibold text-muted-foreground mt-0.5 leading-none">{game.user.stats?.elo || 100} EP</span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={game.logout}
-                    className="ml-1 flex aspect-square h-6 w-6 items-center justify-center rounded-md bg-muted text-[9px] font-bold text-muted-foreground transition-all hover:bg-destructive/10 hover:text-destructive active:scale-95 sm:aspect-auto sm:h-auto sm:w-auto sm:px-1.5 sm:py-1 sm:text-[10px]"
-                  >
-                    <span className="hidden sm:inline">OUT</span>
-                    <span className="sm:hidden">✕</span>
-                  </button>
-                </div>
-              ) : null}
+              <h1 className="hidden font-serif text-xl font-black italic tracking-tighter sm:block">
+                WORDLE<span className="text-primary">WAR</span>
+              </h1>
             </div>
-          </div>
 
-          {game.user ? (
-            <div className="flex items-center justify-between gap-4 border-t border-border/50 pt-2 sm:pt-0 sm:border-t-0">
-              <PillNav 
-                active={nav} 
-                onPlay={() => setNav('play')} 
-                onStats={openStats} 
-                onProfile={() => openProfileView(game.user.username)} 
-                onPlayers={openPlayersView} 
-              />
-              {game.socketConnected ? (
-                <div className="hidden sm:flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-1 text-[10px] font-bold text-emerald-500 border border-emerald-500/20 uppercase tracking-wider">
-                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                  Live
-                </div>
-              ) : (
-                <div className="hidden sm:flex items-center gap-1.5 rounded-full bg-destructive/10 px-2.5 py-1 text-[10px] font-bold text-destructive border border-destructive/20 uppercase tracking-wider">
-                  <span className="h-1.5 w-1.5 rounded-full bg-destructive" />
-                  OFFLINE
-                </div>
-              )}
-            </div>
-          ) : null}
-        </div>
-      </header>
+            {game.user ? (
+              <div className="flex flex-1 items-center justify-center max-w-md">
+                <PillNav
+                  active={activeTab}
+                  onPlay={() => setActiveTab('play')}
+                  onStats={() => {
+                    setActiveTab('stats')
+                    game.fetchStats()
+                  }}
+                  onProfile={() => {
+                    setActiveTab('profile')
+                    game.fetchUserProfile(game.user.username)
+                  }}
+                  onPlayers={() => {
+                    setActiveTab('players')
+                    game.fetchLeaderboard()
+                  }}
+                />
+              </div>
+            ) : (
+              <div className="flex-1" />
+            )}
 
-      {game.user && nav === 'play' && game.uiPhase === 'lobby' && !game.roomCode ? (
-        <div className="border-b-2 border-border bg-secondary py-3">
-          <div className="mx-auto flex max-w-5xl flex-col gap-3 px-4 sm:flex-row sm:items-center sm:gap-4 sm:px-6">
-            <p className="text-xs font-semibold uppercase tracking-wide text-secondary-foreground/80">
-              Quick join
-            </p>
-            <div className="flex flex-1 flex-wrap items-center gap-2">
-              <input
-                value={joinCode}
-                onChange={(e) => setJoinCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6))}
-                placeholder="Room code (6 chars)"
-                className="min-w-[12rem] flex-1 rounded-lg border-2 border-primary bg-popover px-3 py-2 font-mono text-sm font-semibold tracking-widest text-foreground shadow-[var(--shadow-xs)] outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                maxLength={6}
-              />
+            <div className="flex items-center gap-1 sm:gap-2">
               <button
                 type="button"
-                onClick={() => {
-                  if (joinCode.length === 6) {
-                    game.joinRoom(joinCode)
-                    setJoinCode('')
-                  }
-                }}
-                disabled={joinCode.length !== 6 || !game.socketConnected}
-                className="rounded-lg border-2 border-foreground bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-[var(--shadow-sm)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg active:scale-95 disabled:opacity-50 disabled:hover:translate-y-0"
+                onClick={() => setDarkMode(!darkMode)}
+                className="rounded-lg p-2 hover:bg-secondary transition-colors"
+                title="Toggle Theme"
               >
-                Join
+                {darkMode ? '☀️' : '🌙'}
               </button>
-            </div>
-            <span
-              className={`text-xs font-medium ${game.socketConnected ? 'text-secondary-foreground' : 'text-destructive'}`}
-            >
-              {game.socketConnected ? '● Live' : '○ Offline'}
-            </span>
-          </div>
-        </div>
-      ) : null}
-
-      <main className="mx-auto max-w-5xl px-4 py-10 sm:px-6 sm:py-14">
-        {!game.user ? (
-          <div className="mx-auto max-w-md">
-            <AuthCard onLogin={game.login} onRegister={game.register} />
-          </div>
-        ) : (
-          <>
-            {nav === 'play' && game.uiPhase === 'lobby' && !game.roomCode ? (
-              <section className="mb-10 text-center">
-                <div className="mb-6 flex justify-center gap-6">
-                  <div className="flex h-20 w-20 items-center justify-center rounded-full border-2 border-primary bg-secondary text-2xl shadow-[var(--shadow-md)] sm:h-24 sm:w-24">
-                    ⚔
-                  </div>
-                  <div className="flex items-center text-2xl font-bold text-muted-foreground">×</div>
-                  <div className="flex h-20 w-20 items-center justify-center rounded-full border-2 border-primary bg-secondary text-2xl shadow-[var(--shadow-md)] sm:h-24 sm:w-24">
-                    ✦
-                  </div>
-                </div>
-                <h1 className="font-serif text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
-                  Guess their word first
-                </h1>
-                <p className="mx-auto mt-3 max-w-lg text-sm text-muted-foreground sm:text-base">
-                  <span className="font-semibold text-foreground">1.</span> Create or join a room.{' '}
-                  <span className="font-semibold text-foreground">2.</span> Pick a secret word — then take turns
-                  guessing on a shared board. Words are{' '}
-                  <span className="rounded-md border border-primary bg-secondary px-1.5 py-0.5 font-mono text-xs text-secondary-foreground">
-                    {WORD_LEN_MIN}–{WORD_LEN_MAX} letters
+              {game.user && (
+                <div className="hidden items-center gap-2 rounded-full border-2 border-border bg-card px-3 py-1 sm:flex shadow-[var(--shadow-sm)]">
+                  <div className="h-2 w-2 rounded-full bg-tile-correct shrink-0 animate-pulse" />
+                  <span className="font-mono text-xs font-bold truncate max-w-[80px]">
+                    {game.user.username}
                   </span>
-                  .
-                </p>
-              </section>
-            ) : null}
-
-            <div className="rounded-xl border-2 border-border bg-card p-5 shadow-[var(--shadow-md)] sm:p-8">
-              {nav === 'stats' ? (
-                <div>
-                  <div className="mb-6 flex items-center justify-between gap-4">
-                    <h2 className="font-serif text-2xl font-semibold">Your stats</h2>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setNav('play')
-                        game.setStatsOpen(false)
-                      }}
-                      className="flex items-center gap-2 rounded-lg border-2 border-border bg-popover px-4 py-2 text-sm font-semibold text-muted-foreground shadow-[var(--shadow-xs)] transition-all duration-200 hover:-translate-y-0.5 hover:text-foreground hover:shadow-md active:scale-95"
-                    >
-                      ⬅ Back
-                    </button>
-                  </div>
-                  {game.isStatsLoading ? (
-                    <dl className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-                      {Array.from({ length: 6 }).map((_, i) => (
-                        <div
-                          key={i}
-                          className="rounded-lg border-2 border-border bg-popover p-4 shadow-[var(--shadow-xs)]"
-                        >
-                          <div className="h-3 w-16 mb-2 rounded bg-muted animate-shimmer" />
-                          <div className="h-6 w-12 rounded bg-muted animate-shimmer" />
-                        </div>
-                      ))}
-                    </dl>
-                  ) : game.stats ? (
-                    <dl className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-                      {[
-                        ['Games', game.stats.gamesPlayed],
-                        ['Wins', game.stats.wins],
-                        ['Losses', game.stats.losses],
-                        ['Win rate', `${game.stats.winRate}%`],
-                        ['Avg guesses', game.stats.avgGuessesPerGame],
-                        ['Best streak', game.stats.bestStreak],
-                        ['Elo Rating', game.stats.elo],
-                      ].map(([k, v]) => (
-                        <div
-                          key={k}
-                          className="rounded-lg border-2 border-border bg-popover p-4 shadow-[var(--shadow-xs)]"
-                        >
-                          <dt className="text-xs font-medium uppercase text-muted-foreground">{k}</dt>
-                          <dd className="mt-1 font-mono text-xl font-semibold">{v}</dd>
-                        </div>
-                      ))}
-                    </dl>
-                  ) : (
-                    <p className="text-muted-foreground">No stats yet.</p>
-                  )}
+                  <span className="text-primary text-[10px] font-bold">⚡ {game.user?.stats?.elo || 100}</span>
                 </div>
-              ) : nav === 'profile' ? (
-                <div>
-                  <div className="mb-6 flex items-center justify-between gap-4">
-                    <h2 className="font-serif text-2xl font-semibold">My Profile</h2>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setNav('play')
-                        setIsEditingProfile(false)
-                      }}
-                      className="flex items-center gap-2 rounded-lg border-2 border-border bg-popover px-4 py-2 text-sm font-semibold text-muted-foreground shadow-[var(--shadow-xs)] transition-all duration-200 hover:-translate-y-0.5 hover:text-foreground hover:shadow-md active:scale-95"
-                    >
-                      ⬅ Back
-                    </button>
-                  </div>
-
-                  {game.isProfileLoading ? (
-                    <div className="space-y-6">
-                      <div className="h-24 w-full rounded-xl bg-muted animate-shimmer" />
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="h-20 rounded-lg bg-muted animate-shimmer" />
-                        <div className="h-20 rounded-lg bg-muted animate-shimmer" />
-                      </div>
-                    </div>
-                  ) : game.profileData ? (
-                    <div className="space-y-6">
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between rounded-xl border-2 border-border bg-card p-4 sm:p-6 shadow-[var(--shadow-sm)] gap-4 hover:border-primary/50 transition-all">
-                        <div className="flex-1 min-w-0">
-                          {isEditingProfile ? (
-                            <form 
-                              onSubmit={async (e) => {
-                                e.preventDefault()
-                                if (await game.updateUsername(editedUsername)) {
-                                  setIsEditingProfile(false)
-                                  game.fetchUserProfile(editedUsername)
-                                }
-                              }}
-                              className="flex items-center gap-2 mt-1"
-                            >
-                              <input
-                                autoFocus
-                                value={editedUsername}
-                                onChange={e => setEditedUsername(e.target.value)}
-                                className="flex-1 min-w-0 rounded-lg border-2 border-primary bg-background px-3 py-1.5 text-lg font-bold outline-none shadow-[var(--shadow-xs)]"
-                              />
-                              <button type="submit" className="rounded-lg bg-primary px-3 py-2 text-xs font-bold text-primary-foreground shadow-[var(--shadow-xs)] hover:brightness-110 active:scale-95">Save</button>
-                              <button type="button" onClick={() => setIsEditingProfile(false)} className="rounded-lg border-2 border-border bg-popover px-3 py-2 text-xs font-bold shadow-[var(--shadow-xs)] hover:text-destructive active:scale-95">Cancel</button>
-                            </form>
-                          ) : (
-                            <div className="flex flex-col gap-1">
-                              <div className="flex items-center gap-3">
-                                <h3 className="text-2xl sm:text-3xl font-serif font-bold text-foreground truncate" title={game.profileData.username}>{game.profileData.username}</h3>
-                                {game.user?.username === game.profileData.username && (
-                                  <button 
-                                    onClick={() => {
-                                      setEditedUsername(game.user.username)
-                                      setIsEditingProfile(true)
-                                    }}
-                                    className="text-primary hover:scale-110 transition-transform p-1"
-                                    title="Edit username"
-                                  >
-                                    ✏️
-                                  </button>
-                                )}
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${getRankInfo(game.profileData.stats.elo).bg} ${getRankInfo(game.profileData.stats.elo).color} border ${getRankInfo(game.profileData.stats.elo).border}`}>
-                                  {getRankInfo(game.profileData.stats.elo).label}
-                                </span>
-                                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest"> Rank</span>
-                              </div>
-                            </div>
-                          )}
-                          <span className="text-xs text-muted-foreground font-semibold uppercase tracking-widest mt-1 block">
-                            Joined {new Date(game.profileData.joinedAt).toLocaleDateString()}
-                          </span>
-                        </div>
-                        <div className="sm:text-right flex sm:block items-center justify-between border-t-2 sm:border-t-0 border-border pt-4 sm:pt-0 sm:mt-0 mt-2">
-                          <div className="text-xs font-semibold uppercase text-muted-foreground sm:mt-2 order-1 sm:order-none">Elo Rating</div>
-                          <div className="text-2xl sm:text-3xl font-mono rounded-lg text-primary font-bold order-2 sm:order-none">
-                            {game.profileData.stats.elo}
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-3 gap-2 sm:gap-4">
-                        {[
-                          ['Win Rate', `${game.profileData.stats.winRate}%`],
-                          ['Matches', game.profileData.stats.gamesPlayed],
-                          ['Best Streak', game.profileData.stats.bestStreak]
-                        ].map(([k, v]) => (
-                          <div key={k} className="rounded-lg border-2 border-border bg-popover p-3 sm:p-4 text-center shadow-[var(--shadow-xs)] flex flex-col justify-center">
-                            <div className="text-xl sm:text-2xl font-mono font-bold text-foreground max-w-full truncate">{v}</div>
-                            <div className="text-[9px] sm:text-[10px] font-bold uppercase text-muted-foreground mt-1 truncate">{k}</div>
-                          </div>
-                        ))}
-                      </div>
-
-                      <div className="rounded-xl border-2 border-border bg-card overflow-hidden">
-                        <h4 className="bg-popover p-4 text-sm font-bold uppercase border-b-2 border-border tracking-wider text-muted-foreground">Recent Games</h4>
-                        {game.profileData.recentMatches?.length > 0 ? (
-                          <ul className="divide-y-2 divide-border">
-                            {game.profileData.recentMatches.map(m => (
-                              <li key={m.id} className="p-4 flex items-center justify-between hover:bg-popover/50 transition-colors">
-                                <div className="flex items-center gap-4">
-                                  <div className={`w-3 h-3 rounded-full shadow-sm ${m.isDraw ? 'bg-amber-400' : m.winner === game.profileData.username ? 'bg-tile-correct' : 'bg-destructive'}`} />
-                                  <div>
-                                    <div className="font-semibold">{m.opponent}</div>
-                                    <div className="text-xs text-muted-foreground font-mono mt-0.5">{m.endReason}</div>
-                                  </div>
-                                </div>
-                                <div className="text-right">
-                                  <div className={`font-mono text-sm font-bold ${m.myEloChange > 0 ? 'text-tile-correct' : 'text-destructive'}`}>
-                                    {m.myEloChange > 0 ? '+' : ''}{m.myEloChange}
-                                  </div>
-                                  <div className="text-xs text-muted-foreground font-mono mt-0.5">
-                                    {new Date(m.date).toLocaleDateString()}
-                                  </div>
-                                </div>
-                              </li>
-                            ))}
-                          </ul>
-                        ) : (
-                          <p className="p-6 text-center text-sm text-muted-foreground">No recent games found.</p>
-                        )}
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="py-12 text-center text-muted-foreground border-2 border-border border-dashed rounded-xl">
-                      Click "Fetch My Profile" to load your stats.
-                    </div>
-                  )}
-                </div>
-              ) : nav === 'players' ? (
-                <div>
-                  <div className="mb-6 flex items-center justify-between gap-4">
-                    <h2 className="font-serif text-2xl font-semibold">Player Search</h2>
-                    <button
-                      type="button"
-                      onClick={() => setNav('play')}
-                      className="flex items-center gap-2 rounded-lg border-2 border-border bg-popover px-4 py-2 text-sm font-semibold text-muted-foreground shadow-[var(--shadow-xs)] transition-all duration-200 hover:-translate-y-0.5 hover:text-foreground hover:shadow-md active:scale-95"
-                    >
-                      ⬅ Back
-                    </button>
-                  </div>
-                  
-                  <div className="mb-8 flex flex-row gap-2">
-                    <input
-                      value={profileTargetInput}
-                      onChange={e => setProfileTargetInput(e.target.value)}
-                      placeholder="Enter username..."
-                      className="flex-1 min-w-0 rounded-lg border-2 border-input bg-background px-4 py-2 text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                      onKeyDown={e => {
-                        if (e.key === 'Enter') game.fetchUserProfile(profileTargetInput)
-                      }}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => game.fetchUserProfile(profileTargetInput)}
-                      className="shrink-0 rounded-lg border-2 border-foreground bg-primary px-4 sm:px-6 py-2 font-semibold text-primary-foreground shadow-[var(--shadow-sm)] transition-all active:scale-95"
-                    >
-                      Search
-                    </button>
-                  </div>
-
-                  {game.isProfileLoading ? (
-                    <div className="space-y-6">
-                      <div className="h-24 w-full rounded-xl bg-muted animate-shimmer" />
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="h-20 rounded-lg bg-muted animate-shimmer" />
-                        <div className="h-20 rounded-lg bg-muted animate-shimmer" />
-                      </div>
-                    </div>
-                  ) : game.profileData ? (
-                    <div className="space-y-6">
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between rounded-xl border-2 border-border bg-card p-4 sm:p-6 shadow-[var(--shadow-sm)] gap-4 hover:border-primary/50 transition-all">
-                        <div className="flex flex-col gap-1">
-                          <div className="flex items-center gap-3">
-                            <h3 className="text-2xl sm:text-3xl font-serif font-bold text-foreground truncate" title={game.profileData.username}>{game.profileData.username}</h3>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${getRankInfo(game.profileData.stats.elo).bg} ${getRankInfo(game.profileData.stats.elo).color} border ${getRankInfo(game.profileData.stats.elo).border}`}>
-                              {getRankInfo(game.profileData.stats.elo).label}
-                            </span>
-                            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest"> Rank</span>
-                          </div>
-                        </div>
-                        <div className="sm:text-right flex sm:block items-center justify-between border-t-2 sm:border-t-0 border-border pt-4 sm:pt-0 sm:mt-0 mt-2">
-                          <div className="text-xs font-semibold uppercase text-muted-foreground sm:mt-2 order-1 sm:order-none">Elo Rating</div>
-                          <div className="text-2xl sm:text-3xl font-mono rounded-lg text-primary font-bold order-2 sm:order-none leading-none">
-                            {game.profileData.stats.elo}
-                          </div>
-                          <div className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest mt-0.5 order-3 sm:order-none">Current Rating</div>
-                        </div>
-                      </div>
-
-                      {/* Rank Progression Guide */}
-                      <div className="rounded-xl border-2 border-border bg-card overflow-hidden shadow-[var(--shadow-sm)]">
-                        <h4 className="bg-popover p-3 text-[10px] font-bold uppercase border-b-2 border-border tracking-[0.2em] text-muted-foreground/80 flex items-center justify-between">
-                          <span>Rank Guide</span>
-                          <span className="opacity-50">Thresholds</span>
-                        </h4>
-                        <div className="p-3 grid grid-cols-2 sm:grid-cols-3 gap-2">
-                          {[
-                            { l: 'Master', v: '1000+', c: 'text-purple-400', b: 'bg-purple-500/5' },
-                            { l: 'Diamond', v: '750+', c: 'text-cyan-400', b: 'bg-cyan-500/5' },
-                            { l: 'Platinum', v: '500+', c: 'text-sky-400', b: 'bg-sky-500/5' },
-                            { l: 'Gold', v: '300+', c: 'text-amber-400', b: 'bg-amber-500/5' },
-                            { l: 'Silver', v: '150+', c: 'text-slate-400', b: 'bg-slate-500/5' },
-                            { l: 'Bronze', v: '0+', c: 'text-orange-500', b: 'bg-orange-500/5' },
-                          ].map(r => (
-                            <div key={r.l} className={`flex flex-col items-center p-2 rounded-lg ${r.b} border border-border/40 transition-transform hover:scale-[1.02]`}>
-                              <span className={`text-[11px] font-bold ${r.c} uppercase tracking-tight`}>{r.l}</span>
-                              <span className="font-mono text-[10px] text-muted-foreground font-bold">{r.v}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-3 gap-2 sm:gap-4">
-                        {[
-                          ['Win Rate', `${game.profileData.stats.winRate}%`],
-                          ['Matches', game.profileData.stats.gamesPlayed],
-                          ['Best Streak', game.profileData.stats.bestStreak]
-                        ].map(([k, v]) => (
-                          <div key={k} className="rounded-lg border-2 border-border bg-popover p-3 sm:p-4 text-center shadow-[var(--shadow-xs)] flex flex-col justify-center">
-                            <div className="text-xl sm:text-2xl font-mono font-bold text-foreground max-w-full truncate">{v}</div>
-                            <div className="text-[9px] sm:text-[10px] font-bold uppercase text-muted-foreground mt-1 truncate">{k}</div>
-                          </div>
-                        ))}
-                      </div>
-
-                      <div className="rounded-xl border-2 border-border bg-card overflow-hidden">
-                        <h4 className="bg-popover p-4 text-sm font-bold uppercase border-b-2 border-border tracking-wider text-muted-foreground flex items-center justify-between">
-                          <span>{showAllMatches ? 'All Games' : 'Recent Games'}</span>
-                          {!showAllMatches && game.profileData.recentMatches?.length > 0 && (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setShowAllMatches(true)
-                                game.fetchMatchHistory(game.profileData.username, 1)
-                              }}
-                              className="text-[10px] font-bold uppercase tracking-wider text-primary hover:text-primary/80 transition-colors"
-                            >
-                              View All →
-                            </button>
-                          )}
-                          {showAllMatches && (
-                            <button
-                              type="button"
-                              onClick={() => setShowAllMatches(false)}
-                              className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors"
-                            >
-                              ← Back
-                            </button>
-                          )}
-                        </h4>
-
-                        {showAllMatches ? (
-                          /* Full paginated match history */
-                          <>
-                            {game.isMatchHistoryLoading ? (
-                              <div className="p-6 space-y-3">
-                                {[1,2,3,4,5].map(i => (
-                                  <div key={i} className="h-12 w-full rounded-lg bg-muted animate-shimmer" />
-                                ))}
-                              </div>
-                            ) : game.matchHistory?.length > 0 ? (
-                              <>
-                                <ul className="divide-y-2 divide-border">
-                                  {game.matchHistory.map(m => (
-                                    <li key={m.id} className="p-4 flex items-center justify-between hover:bg-popover/50 transition-colors">
-                                      <div className="flex items-center gap-4">
-                                        <div className={`w-3 h-3 rounded-full shadow-sm ${m.isDraw ? 'bg-amber-400' : m.winner === game.profileData.username ? 'bg-tile-correct' : 'bg-destructive'}`} />
-                                        <div>
-                                          <div className="font-semibold">{m.opponent}</div>
-                                          <div className="text-xs text-muted-foreground font-mono mt-0.5">{m.endReason} · {m.wordLength} letters</div>
-                                        </div>
-                                      </div>
-                                      <div className="text-right">
-                                        <div className={`font-mono text-sm font-bold ${m.myEloChange > 0 ? 'text-tile-correct' : m.myEloChange < 0 ? 'text-destructive' : 'text-muted-foreground'}`}>
-                                          {m.myEloChange > 0 ? '+' : ''}{m.myEloChange}
-                                        </div>
-                                        <div className="text-xs text-muted-foreground font-mono mt-0.5">
-                                          {new Date(m.date).toLocaleDateString()}
-                                        </div>
-                                      </div>
-                                    </li>
-                                  ))}
-                                </ul>
-                                {/* Pagination controls */}
-                                {game.matchHistoryMeta && game.matchHistoryMeta.totalPages > 1 && (
-                                  <div className="flex items-center justify-between border-t-2 border-border bg-popover px-4 py-3">
-                                    <button
-                                      type="button"
-                                      onClick={() => game.fetchMatchHistory(game.profileData.username, game.matchHistoryMeta.page - 1)}
-                                      disabled={game.matchHistoryMeta.page <= 1}
-                                      className="rounded-lg border-2 border-border bg-card px-3 py-1.5 text-xs font-bold disabled:opacity-30 transition-all hover:-translate-y-0.5 active:scale-95"
-                                    >
-                                      ← Prev
-                                    </button>
-                                    <span className="text-xs font-bold text-muted-foreground">
-                                      Page {game.matchHistoryMeta.page} of {game.matchHistoryMeta.totalPages} · {game.matchHistoryMeta.total} games
-                                    </span>
-                                    <button
-                                      type="button"
-                                      onClick={() => game.fetchMatchHistory(game.profileData.username, game.matchHistoryMeta.page + 1)}
-                                      disabled={game.matchHistoryMeta.page >= game.matchHistoryMeta.totalPages}
-                                      className="rounded-lg border-2 border-border bg-card px-3 py-1.5 text-xs font-bold disabled:opacity-30 transition-all hover:-translate-y-0.5 active:scale-95"
-                                    >
-                                      Next →
-                                    </button>
-                                  </div>
-                                )}
-                              </>
-                            ) : (
-                              <p className="p-6 text-center text-sm text-muted-foreground">No games found.</p>
-                            )}
-                          </>
-                        ) : (
-                          /* Preview: recent 10 from profile */
-                          game.profileData.recentMatches?.length > 0 ? (
-                            <ul className="divide-y-2 divide-border">
-                              {game.profileData.recentMatches.map(m => (
-                                <li key={m.id} className="p-4 flex items-center justify-between hover:bg-popover/50 transition-colors">
-                                  <div className="flex items-center gap-4">
-                                    <div className={`w-3 h-3 rounded-full shadow-sm ${m.isDraw ? 'bg-amber-400' : m.winner === game.profileData.username ? 'bg-tile-correct' : 'bg-destructive'}`} />
-                                    <div>
-                                      <div className="font-semibold">{m.opponent}</div>
-                                      <div className="text-xs text-muted-foreground font-mono mt-0.5">{m.endReason}</div>
-                                    </div>
-                                  </div>
-                                  <div className="text-right">
-                                    <div className={`font-mono text-sm font-bold ${m.myEloChange > 0 ? 'text-tile-correct' : 'text-destructive'}`}>
-                                      {m.myEloChange > 0 ? '+' : ''}{m.myEloChange}
-                                    </div>
-                                    <div className="text-xs text-muted-foreground font-mono mt-0.5">
-                                      {new Date(m.date).toLocaleDateString()}
-                                    </div>
-                                  </div>
-                                </li>
-                              ))}
-                            </ul>
-                          ) : (
-                            <p className="p-6 text-center text-sm text-muted-foreground">No recent games found.</p>
-                          )
-                        )}
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="py-12 text-center text-muted-foreground border-2 border-border border-dashed rounded-xl">
-                      Search for a player to view their profile.
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <>
-                  {game.disconnectBanner ? (
-                    <div className="mb-4 rounded-lg border-2 border-primary bg-secondary/60 px-4 py-3 text-sm font-medium text-secondary-foreground shadow-[var(--shadow-xs)]">
-                      {game.disconnectBanner.username} disconnected — waiting up to{' '}
-                      {Math.ceil((game.disconnectBanner.graceMs || 0) / 1000)}s for reconnect…
-                    </div>
-                  ) : null}
-
-                  {game.uiPhase === 'lobby' && !game.roomCode ? (
-                    <div className="flex flex-col gap-6">
-                      {game.isMatchmaking ? (
-                        <div className="flex flex-col items-center gap-4 py-8">
-                          <h2 className="font-serif text-2xl font-semibold animate-pulse text-primary">Searching for opponent...</h2>
-                          <p className="text-muted-foreground text-sm">Mode: {gameMode} • Theme: {theme} • Length: {lengthInput}</p>
-                          <button
-                            type="button"
-                            onClick={game.leaveMatchmaking}
-                            className="mt-4 rounded-lg border-2 border-foreground bg-destructive px-6 py-2 font-semibold text-destructive-foreground shadow-[var(--shadow-md)]"
-                          >
-                            Cancel Search
-                          </button>
-                        </div>
-                      ) : (
-                        <>
-                          <h2 className="font-serif text-2xl font-semibold">Start a match</h2>
-                          <div className="flex flex-col gap-4">
-                            <div>
-                              <label className="mb-1 block text-sm font-medium text-muted-foreground" htmlFor="word-len">
-                                Word length ({WORD_LEN_MIN}–{WORD_LEN_MAX} letters)
-                              </label>
-                              <div className="flex flex-wrap items-center gap-3">
-                                <input
-                                  id="word-len"
-                                  type="text"
-                                  inputMode="numeric"
-                                  pattern="[0-9]*"
-                                  maxLength={2}
-                                  value={lengthInput}
-                                  onChange={(e) =>
-                                    setLengthInput(e.target.value.replace(/\D/g, '').slice(0, 2))
-                                  }
-                                  onBlur={() => {
-                                    const n = parseWordLengthInput(lengthInput)
-                                    setLengthInput(String(n))
-                                  }}
-                                  className="w-24 rounded-lg border-2 border-border bg-input px-3 py-2 font-mono text-lg font-bold text-foreground shadow-[var(--shadow-xs)] outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                                />
-                                {QUICK_LENGTHS.map((n) => (
-                                  <button
-                                    key={n}
-                                    type="button"
-                                    onClick={() => setLengthInput(String(n))}
-                                    className={`rounded-lg border-2 px-3 py-1.5 font-mono text-sm font-semibold shadow-[var(--shadow-xs)] transition ${lengthInput === String(n) ? 'border-primary bg-primary/10 text-primary' : 'border-border bg-popover hover:border-primary/50'}`}
-                                  >
-                                    {n}
-                                  </button>
-                                ))}
-                              </div>
-                            </div>
-                            
-                            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                              <CustomSelect
-                                id="game-mode"
-                                label="Game mode"
-                                value={gameMode}
-                                options={GAME_MODES}
-                                onChange={setGameMode}
-                              />
-                              <CustomSelect
-                                id="theme"
-                                label="Word Theme"
-                                value={theme}
-                                options={WORD_THEMES}
-                                onChange={setTheme}
-                              />
-                            </div>
-
-                            {gameMode === 'custom' && (
-                              <div className="mt-4 rounded-lg border-2 border-primary/30 bg-primary/5 p-3 text-sm text-primary">
-                                <p className="flex items-center gap-2 font-semibold">
-                                  <span>⚙️</span> Custom Mode active:
-                                </p>
-                                <p className="mt-1 text-xs opacity-80">Adjust word length above. More custom parameters coming soon!</p>
-                              </div>
-                            )}
-
-                            <div className="mt-4 flex flex-col gap-3">
-                              <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    game.joinMatchmaking(lengthInput, gameMode, theme)
-                                  }}
-                                  disabled={!game.socketConnected}
-                                  className="w-full sm:flex-1 rounded-lg border-2 border-foreground bg-primary px-5 py-3 font-semibold text-primary-foreground shadow-[var(--shadow-md)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg active:scale-95 disabled:opacity-50 disabled:hover:translate-y-0"
-                                >
-                                  Find Match
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    game.joinMatchmaking(5, 'random', 'none')
-                                  }}
-                                  disabled={!game.socketConnected}
-                                  className="w-full sm:flex-1 rounded-lg border-2 border-indigo-500 bg-indigo-600/10 px-5 py-3 font-semibold text-indigo-500 shadow-[var(--shadow-sm)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-indigo-600/20 hover:shadow-md active:scale-95 disabled:opacity-50"
-                                >
-                                  🎲 Surprise Match (Random)
-                                </button>
-                              </div>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  const n = parseWordLengthInput(lengthInput)
-                                  game.createRoom(n, gameMode, theme)
-                                }}
-                                disabled={!game.socketConnected}
-                                className="w-full rounded-lg border-2 border-border bg-popover px-5 py-3 font-semibold text-muted-foreground shadow-[var(--shadow-xs)] transition-all duration-200 hover:-translate-y-0.5 hover:text-foreground hover:shadow-md active:scale-95 disabled:opacity-50"
-                              >
-                                🔗 Play with Friend (Private)
-                              </button>
-                            </div>
-
-                            <p className="mt-4 text-center text-[10px] font-bold uppercase tracking-widest text-muted-foreground opacity-60">
-                              🏆 All matches (including private) currently impact Elo
-                            </p>
-
-                            <p className="text-sm text-muted-foreground text-center mt-2">
-                              Or use <strong className="text-foreground">Quick join</strong> above to enter a friend&apos;s code.
-                            </p>
-                          </div>
-                        </>
-                      )}
-                    </div>
-                    ) : null}
-
-                  {game.uiPhase === 'lobby' && game.roomCode ? (
-                    <div className="flex flex-col items-center gap-4 text-center">
-                      <h2 className="font-serif text-2xl font-semibold">Waiting for opponent</h2>
-                      <p className="text-muted-foreground">Share this code:</p>
-                      <div className="flex flex-wrap items-center justify-center gap-2">
-                        <code className="rounded-lg border-2 border-primary bg-popover px-4 py-3 font-mono text-2xl font-bold tracking-[0.2em] shadow-[var(--shadow-md)]">
-                          {game.roomCode}
-                        </code>
-                        <button
-                          type="button"
-                          onClick={copyCode}
-                          className="rounded-lg border-2 border-border bg-secondary px-4 py-3 text-sm font-semibold text-secondary-foreground shadow-[var(--shadow-sm)]"
-                        >
-                          Copy
-                        </button>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={game.leaveRoom}
-                        className="mt-2 text-sm font-semibold text-destructive underline-offset-2 hover:underline"
-                      >
-                        Cancel room
-                      </button>
-                    </div>
-                  ) : null}
-
-                  {game.uiPhase === 'setup' ? (
-                    <div className="mx-auto max-w-lg">
-                      <h2 className="mb-2 font-serif text-2xl font-semibold">Pick your secret word</h2>
-                      <p className="mb-4 text-sm text-muted-foreground flex flex-wrap items-center gap-y-1 gap-x-2">
-                        <span>{game.wordLength} letters</span>
-                        <span>—</span>
-                        <span>your opponent will try to guess it.</span>
-                        {game.theme && game.theme !== 'none' && (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-indigo-500/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-indigo-500 border border-indigo-500/20">
-                            Theme: {WORD_THEMES.find(t => t.value === game.theme)?.label || game.theme}
-                          </span>
-                        )}
-                        {game.hasSetWord ? (
-                          <span className="w-full mt-1 font-semibold text-primary">Locked in. Waiting for the other player…</span>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={game.getSuggestion}
-                            className="inline-flex items-center gap-1 mt-1 rounded-lg border-2 border-indigo-500/30 bg-indigo-500/10 px-3 py-1 text-xs font-bold text-indigo-500 hover:bg-indigo-500/20 transition-all active:scale-95"
-                          >
-                            🪄 Suggest a Word
-                          </button>
-                        )}
-                      </p>
-                      {!game.hasSetWord ? (
-                        <>
-                          <WordleBoard
-                            wordLength={game.wordLength}
-                            guesses={[]}
-                            currentDraft={game.secretDraft}
-                          />
-                          <WarKeyboard
-                            letterStates={{}}
-                            onKey={typeLetter}
-                            onBackspace={() => game.setSecretDraft((d) => d.slice(0, -1))}
-                            onEnter={() => {
-                              if (game.secretDraft.length === game.wordLength) {
-                                game.submitSecretWord(game.secretDraft.toLowerCase())
-                              }
-                            }}
-                            enterDisabled={game.secretDraft.length !== game.wordLength}
-                          />
-                        </>
-                      ) : (
-                        <WordleBoard wordLength={game.wordLength} guesses={[]} currentDraft={null} />
-                      )}
-                    </div>
-                  ) : null}
-
-                  {game.uiPhase === 'playing' ? (
-                    <div className="mx-auto max-w-lg">
-                      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-                        <h2 className="font-serif text-xl font-semibold sm:text-2xl flex items-center gap-2">
-                          vs 
-                          <button 
-                            type="button"
-                            onClick={() => openProfileView(game.opponentName)}
-                            className="hover:underline hover:text-primary transition-colors cursor-pointer"
-                          >
-                            {game.opponentName || 'Opponent'}
-                          </button>
-                          <span className="bg-primary/20 text-primary border border-primary px-2 py-0.5 rounded text-sm min-w-[50px] text-center">
-                            ⚡ {game.actionPoints || 0} AP
-                          </span>
-                        </h2>
-                        <div className="flex items-center gap-3">
-                          {game.gameMode === 'blitz' && game.timeRemaining !== null ? (
-                            <span
-                              className={[
-                                'font-mono text-sm font-bold',
-                                game.timeRemaining <= 10 ? 'text-destructive animate-pulse' : 'text-primary'
-                              ].join(' ')}
-                            >
-                              ⏱ {game.timeRemaining}s
-                            </span>
-                          ) : null}
-                          <span
-                            className={[
-                              'rounded-full border-2 px-3 py-1 text-xs font-bold uppercase',
-                              game.yourTurn
-                                ? 'border-primary bg-secondary text-secondary-foreground'
-                                : 'border-border bg-muted text-muted-foreground',
-                            ].join(' ')}
-                          >
-                            {game.yourTurn ? 'Your turn' : 'Their turn'}
-                          </span>
-                        </div>
-                      </div>
-                      <p className="mb-4 text-sm text-muted-foreground">
-                        Their guesses so far:{' '}
-                        <span className="font-mono font-semibold text-foreground">{game.opponentGuessCount}</span>
-                      </p>
-                      
-                      <WordleBoard
-                        wordLength={game.wordLength}
-                        guesses={game.isScrambled ? [...game.guesses].reverse() : game.guesses}
-                        currentDraft={game.yourTurn ? game.draftGuess : null}
-                      />
-                      
-                      {game.yourTurn ? (
-                        <>
-                          <div className="my-4 flex items-center justify-center gap-2 border-y border-border py-3">
-                            <span className="text-xs uppercase font-bold text-muted-foreground mr-2">Power-ups</span>
-                            <button
-                              onClick={() => game.usePowerup('hint')}
-                              disabled={game.actionPoints < 3}
-                              title="Hint (Cost: 3 AP) - Reveal a letter"
-                              className="rounded bg-sky-500/20 border border-sky-500 px-3 py-1.5 text-xs font-bold text-sky-600 disabled:opacity-30 transition-transform active:scale-95"
-                            >
-                              💡 Hint (3)
-                            </button>
-                            <button
-                              onClick={() => game.usePowerup('scramble')}
-                              disabled={game.actionPoints < 4}
-                              title="Scramble (Cost: 4 AP) - Shuffle their board"
-                              className="rounded bg-purple-500/20 border border-purple-500 px-3 py-1.5 text-xs font-bold text-purple-600 disabled:opacity-30 transition-transform active:scale-95"
-                            >
-                              🌪️ Scramble (4)
-                            </button>
-                            <button
-                              onClick={() => game.usePowerup('blindfold')}
-                              disabled={game.actionPoints < 5}
-                              title="Blindfold (Cost: 5 AP) - Hide their keyboard"
-                              className="rounded bg-stone-500/20 border border-stone-500 px-3 py-1.5 text-xs font-bold text-stone-600 disabled:opacity-30 transition-transform active:scale-95"
-                            >
-                              🙈 Blindfold (5)
-                            </button>
-                          </div>
-                          <WarKeyboard
-                            letterStates={letterStates}
-                            onKey={typeLetter}
-                            onBackspace={() => game.setDraftGuess((d) => d.slice(0, -1))}
-                            onEnter={() => {
-                              if (game.draftGuess.length === game.wordLength) {
-                                game.submitGuess(game.draftGuess.toLowerCase())
-                              }
-                            }}
-                            enterDisabled={game.draftGuess.length !== game.wordLength}
-                            isBlindfolded={game.isBlindfolded}
-                          />
-                        </>
-                      ) : (
-                        <p className="mt-4 text-center text-sm text-muted-foreground">
-                          Watch the board — it&apos;s their turn to guess.
-                        </p>
-                      )}
-                    </div>
-                  ) : null}
-
-                  {game.uiPhase === 'gameover' && game.gameOver ? (
-                    <div className="flex flex-col items-center gap-6 text-center">
-                      <div className="relative">
-                        <h2 className="font-serif text-4xl font-bold italic tracking-tight sm:text-5xl">
-                          {game.gameOver.result === 'win' ? 'Victory!' : game.gameOver.result === 'loss' ? 'Defeat' : 'Draw'}
-                        </h2>
-                        <div className="mt-3 flex flex-col items-center gap-1">
-                          <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/60">
-                            Competitive Rating
-                          </div>
-                          <div className="flex items-baseline gap-2">
-                            <span className="text-3xl font-mono font-bold text-foreground">
-                              {game.gameOver.newElo || game.user?.stats?.elo || 100}
-                            </span>
-                            {(typeof game.gameOver.eloChange === 'number' && game.gameOver.eloChange !== 0) && (
-                              <span className={`text-lg font-mono font-bold drop-shadow-sm ${game.gameOver.eloChange > 0 ? 'text-tile-correct' : 'text-destructive'}`}>
-                                {game.gameOver.eloChange > 0 ? '↑' : '↓'}
-                                {Math.abs(game.gameOver.eloChange)}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                      <p className="text-sm text-muted-foreground">
-                        Winner: <button type="button" className="font-semibold text-foreground hover:text-primary transition-colors hover:underline" onClick={() => openProfileView(game.gameOver.winner)}>{game.gameOver.winner}</button>
-                        {game.gameOver.endReason === 'disconnect' ? (
-                          <span className="block mt-1 text-xs text-destructive/80 font-bold uppercase tracking-wider">(opponent disconnected)</span>
-                        ) : game.gameOver.endReason === 'forfeit' ? (
-                          <span className="block mt-1 text-xs text-destructive/80 font-bold uppercase tracking-wider">(surrendered)</span>
-                        ) : null}
-                      </p>
-                      <div className="mt-6 rounded-lg border-2 border-border bg-popover p-4 text-left text-sm shadow-[var(--shadow-xs)]">
-                        <p>
-                          <span className="text-muted-foreground">Your word:</span>{' '}
-                          <span className="font-mono font-bold">{game.gameOver.yourWord}</span>
-                        </p>
-                        <p className="mt-2">
-                          <span className="text-muted-foreground">Their word:</span>{' '}
-                          <span className="font-mono font-bold">{game.gameOver.opponentWord}</span>
-                        </p>
-                        <p className="mt-2 text-muted-foreground">
-                          Guesses — you: {game.gameOver.yourGuesses}, them: {game.gameOver.opponentGuesses}
-                          {game.gameOver.duration != null ? ` · ${game.gameOver.duration}s` : ''}
-                        </p>
-                      </div>
-                      <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center">
-                        {game.rematchRequestedBy && !game.rematchPending ? (
-                          /* Opponent wants rematch — show Accept/Decline */
-                          <>
-                            <button
-                              type="button"
-                              onClick={game.requestRematch}
-                              className="rounded-lg border-2 border-foreground bg-primary px-6 py-3 font-semibold text-primary-foreground shadow-[var(--shadow-md)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg active:scale-95 animate-pulse"
-                            >
-                              ✅ Accept Rematch
-                            </button>
-                            <button
-                              type="button"
-                              onClick={game.leaveRoom}
-                              className="rounded-lg border-2 border-border bg-popover px-6 py-3 font-semibold shadow-[var(--shadow-xs)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:scale-95"
-                            >
-                              ❌ Decline
-                            </button>
-                            <p className="text-xs text-primary font-bold uppercase tracking-wider text-center sm:hidden mt-1">
-                              {game.rematchRequestedBy} wants a rematch!
-                            </p>
-                          </>
-                        ) : game.rematchPending ? (
-                          /* You requested — waiting */
-                          <>
-                            <button
-                              type="button"
-                              disabled
-                              className="rounded-lg border-2 border-foreground bg-primary/50 px-6 py-3 font-semibold text-primary-foreground shadow-[var(--shadow-md)] opacity-70 cursor-not-allowed"
-                            >
-                              Rematch Requested...
-                            </button>
-                            <button
-                              type="button"
-                              onClick={game.leaveRoom}
-                              className="rounded-lg border-2 border-border bg-popover px-6 py-3 font-semibold shadow-[var(--shadow-xs)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:scale-95"
-                            >
-                              Leave room
-                            </button>
-                            <p className="mt-1 text-xs text-muted-foreground text-center">
-                              Waiting for opponent to accept…
-                            </p>
-                          </>
-                        ) : (
-                          /* Neither has requested yet */
-                          <>
-                            <button
-                              type="button"
-                              onClick={game.requestRematch}
-                              className="rounded-lg border-2 border-foreground bg-primary px-6 py-3 font-semibold text-primary-foreground shadow-[var(--shadow-md)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg active:scale-95"
-                            >
-                              🔁 Rematch
-                            </button>
-                            <button
-                              type="button"
-                              onClick={game.leaveRoom}
-                              className="rounded-lg border-2 border-border bg-popover px-6 py-3 font-semibold shadow-[var(--shadow-xs)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:scale-95"
-                            >
-                              Leave room
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  ) : null}
-
-                  {game.uiPhase === 'gameover' && !game.gameOver ? (
-                    <div className="text-center">
-                      <p className="text-muted-foreground">Game finished. Use rematch or leave from the menu.</p>
-                      <button
-                        type="button"
-                        onClick={game.leaveRoom}
-                        className="mt-4 rounded-lg border-2 border-border bg-popover px-4 py-2 text-sm font-semibold"
-                      >
-                        Leave room
-                      </button>
-                    </div>
-                  ) : null}
-                </>
               )}
             </div>
-          </>
+          </div>
+        </header>
+
+        <main className="container mx-auto flex-1 px-4 py-4 sm:px-8 sm:py-8">
+          {!game.user ? (
+            <div className="mx-auto max-w-md">
+              <div className="mb-8 text-center">
+                <h2 className="mb-2 font-serif text-3xl font-bold tracking-tight sm:text-4xl">Ultimate Vocabulary Duel</h2>
+                <p className="text-muted-foreground">Pick a word, power up, and outsmart your opponent in real-time wordle battles.</p>
+              </div>
+              <AuthCard onLogin={game.login} onRegister={game.register} />
+            </div>
+          ) : (
+            <div className="flex flex-col gap-6">
+              {/* Quick Join Bar (Only in play tab, lobby phase) */}
+              {activeTab === 'play' && game.uiPhase === 'lobby' && !game.isMatchmaking && (
+                <div className="mx-auto w-full max-w-sm">
+                  <div className="group relative flex h-14 items-center overflow-hidden rounded-2xl border-4 border-primary bg-card p-1 shadow-[0_6px_0_0_oklch(0.6209_0.1801_348.1385_/_0.2)] transition-all focus-within:translate-y-1 focus-within:shadow-none">
+                    <input
+                      type="text"
+                      placeholder="ENTER ROOM CODE..."
+                      className="h-full w-full bg-transparent pl-4 pr-24 font-mono text-lg font-black uppercase tracking-[0.2em] text-foreground outline-none placeholder:font-sans placeholder:text-[10px] placeholder:tracking-normal placeholder:opacity-40"
+                      value={joinCodeInput}
+                      onChange={(e) => setJoinCodeInput(e.target.value.toUpperCase())}
+                      maxLength={6}
+                    />
+                    <button
+                      onClick={() => game.joinRoom(joinCodeInput)}
+                      className="absolute bottom-1 right-1 top-1 flex items-center justify-center rounded-xl bg-primary px-6 font-black tracking-widest text-primary-foreground transition-all hover:scale-[1.02] hover:brightness-110 active:scale-95 whitespace-nowrap"
+                    >
+                      JOIN
+                    </button>
+                  </div>
+                  <p className="mt-3 text-center text-[10px] font-bold uppercase tracking-widest text-muted-foreground opacity-60">
+                    Have a code? Warp to the battlefield.
+                  </p>
+                </div>
+              )}
+
+              {/* View Rendering Logic */}
+              <div className="min-h-[400px]">
+                {activeTab === 'play' && (
+                  <>
+                    {isDailyMode ? (
+                      <DailyChallengeView 
+                        game={game} 
+                        onClose={() => setIsDailyMode(false)}
+                      />
+                    ) : (
+                      <>
+                        {game.uiPhase === 'lobby' && (
+                          <LobbyView 
+                            game={game}
+                            gameMode={gameMode}
+                            setGameMode={setGameMode}
+                            theme={theme}
+                            setTheme={setTheme}
+                            lengthInput={lengthInput}
+                            setLengthInput={setLengthInput}
+                            WORD_THEMES={WORD_THEMES}
+                            GAME_MODES={GAME_MODES}
+                            CustomSelect={CustomSelect}
+                            parseWordLengthInput={parseWordLengthInput}
+                            QUICK_LENGTHS={QUICK_LENGTHS}
+                            onDailySolo={() => setIsDailyMode(true)}
+                          />
+                        )}
+
+                        {game.uiPhase === 'setup' && (
+                          <SetupView 
+                            game={game}
+                            WORD_THEMES={WORD_THEMES}
+                            typeLetter={typeLetter}
+                          />
+                        )}
+
+                        {game.uiPhase === 'playing' && (
+                          <PlayingView 
+                            game={game}
+                            letterStates={letterStates}
+                            typeLetter={typeLetter}
+                            openProfileView={openProfileView}
+                          />
+                        )}
+
+                        {game.uiPhase === 'gameover' && (
+                          <GameOverView 
+                            game={game}
+                            openProfileView={openProfileView}
+                          />
+                        )}
+                      </>
+                    )}
+                  </>
+                )}
+
+                {(activeTab === 'stats' || activeTab === 'players') && (
+                  <StatsView 
+                    stats={game.stats}
+                    mode={activeTab === 'players' ? 'global' : 'personal'}
+                    isLoading={game.isStatsLoading}
+                    getRankInfo={getRankInfo}
+                  />
+                )}
+
+                {activeTab === 'profile' && (
+                  <ProfileView 
+                    game={game}
+                    profileData={game.profileData}
+                    isProfileLoading={game.isProfileLoading}
+                    getRankInfo={getRankInfo}
+                    onLogout={handleLogout}
+                  />
+                )}
+              </div>
+            </div>
+          )}
+        </main>
+
+        <footer className="mt-auto border-t-2 border-border py-8 text-center">
+          <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground opacity-50">
+            Wordle War Remastered &copy; {new Date().getFullYear()}
+          </p>
+          <div className="mt-4 flex justify-center gap-4">
+            <button
+              onClick={() => setShowHowTo(true)}
+              className="text-xs font-semibold text-primary underline-offset-4 hover:underline"
+            >
+              How to Play
+            </button>
+            <a href="#" className="text-xs font-semibold text-muted-foreground underline-offset-4 hover:underline">
+              Terms
+            </a>
+            <a href="#" className="text-xs font-semibold text-muted-foreground underline-offset-4 hover:underline">
+              Privacy
+            </a>
+          </div>
+        </footer>
+
+        {/* Global UI Components */}
+        <HowToPlayModal isOpen={showHowTo} onClose={() => setShowHowTo(false)} />
+        <HowToPlayFab />
+        <ToastContainer toasts={game.toasts} removeToast={game.removeToast} />
+
+        {/* Surrender Button Overlay */}
+        {game.uiPhase === 'playing' && (
+          <div className="fixed bottom-4 right-4 z-50">
+            <button
+              onClick={() => {
+                if (window.confirm('Surrender? You will lose Elo.')) {
+                  game.forfeitGame()
+                }
+              }}
+              className="group flex h-12 w-12 items-center justify-center rounded-full border-2 border-destructive bg-popover text-xl shadow-[var(--shadow-md)] transition-all hover:scale-110 active:scale-95"
+              title="Surrender"
+            >
+              🏳️
+            </button>
+          </div>
         )}
-      </main>
-    </div>
+      </div>
+    </ErrorBoundary>
   )
 }
+
+export default App
