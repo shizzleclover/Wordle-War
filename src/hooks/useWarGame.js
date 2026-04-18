@@ -211,6 +211,11 @@ export function useWarGame() {
 
     socket.on('opponent-ready', () => showToast('Opponent is ready'))
 
+    socket.on('word-suggestion', ({ word }) => {
+      setSecretDraft(word.toUpperCase())
+      showToast(`Suggested: ${word.toUpperCase()}`)
+    })
+
     socket.on('game-start', ({ yourTurn: yt, opponentName: on, wordLength: wl, gameMode: gm, theme: th, turnStartedAt: tsa }) => {
       if (wl) setWordLength(wl)
       if (gm) setGameMode(gm)
@@ -277,9 +282,11 @@ export function useWarGame() {
       setDisconnectBanner(null)
       
       if (payload.result === 'win') {
-        showToast(`YOU WIN! +${payload.eloChange || 0} EP`)
+        const msg = payload.endReason === 'forfeit' ? 'OPPONENT FORFEITED! YOU WIN' : 'YOU WIN!'
+        showToast(`${msg} +${payload.eloChange || 0} EP`)
       } else if (payload.result === 'loss') {
-        showToast(`YOU LOST. ${payload.eloChange || 0} EP`)
+        const msg = payload.endReason === 'forfeit' ? 'YOU FORFEITED. YOU LOST' : 'YOU LOST.'
+        showToast(`${msg} ${payload.eloChange || 0} EP`)
       } else {
         showToast('MATCH DRAWN')
       }
@@ -552,6 +559,14 @@ export function useWarGame() {
     setIsMatchmaking(false)
   }, [])
 
+  const forfeitGame = useCallback(() => {
+    socketRef.current?.emit('leave-room')
+  }, [])
+
+  const getSuggestion = useCallback(() => {
+    socketRef.current?.emit('get-word-suggestion')
+  }, [])
+
   const usePowerup = useCallback((type) => {
     socketRef.current?.emit('use-powerup', { type })
   }, [])
@@ -593,6 +608,8 @@ export function useWarGame() {
     submitGuess,
     requestRematch,
     leaveRoom,
+    forfeitGame,
+    getSuggestion,
     isMatchmaking,
     joinMatchmaking,
     leaveMatchmaking,

@@ -271,6 +271,7 @@ export default function App() {
   const [profileTargetInput, setProfileTargetInput] = useState('')
   const [isEditingProfile, setIsEditingProfile] = useState(false)
   const [editedUsername, setEditedUsername] = useState('')
+  const [showForfeitConfirm, setShowForfeitConfirm] = useState(false)
 
   const game = useWarGame()
 
@@ -451,6 +452,41 @@ export default function App() {
                 >
                   {dark ? '☀' : '☾'}
                 </button>
+                {(game.uiPhase === 'playing' || (game.uiPhase === 'setup' && game.roomCode)) && (
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={() => setShowForfeitConfirm(!showForfeitConfirm)}
+                      className="ml-1 flex h-8 px-2 sm:h-10 sm:px-3 items-center justify-center rounded-lg border-2 border-destructive bg-destructive/10 text-[10px] sm:text-xs font-bold text-destructive shadow-[var(--shadow-xs)] transition-all hover:-translate-y-0.5 active:scale-95"
+                    >
+                      🏳️ Surrender
+                    </button>
+                    {showForfeitConfirm && (
+                      <div className="absolute right-0 top-full z-[60] mt-2 w-48 rounded-xl border-2 border-border bg-popover p-4 shadow-[var(--shadow-xl)] animate-in fade-in zoom-in-95 duration-200">
+                        <p className="mb-3 text-[10px] font-bold text-muted-foreground uppercase tracking-widest leading-relaxed">
+                          Really surrender? This counts as a loss.
+                        </p>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => {
+                              game.forfeitGame()
+                              setShowForfeitConfirm(false)
+                            }}
+                            className="flex-1 rounded-lg bg-destructive px-2 py-1.5 text-[10px] font-bold text-destructive-foreground hover:brightness-110"
+                          >
+                            Yes
+                          </button>
+                          <button
+                            onClick={() => setShowForfeitConfirm(false)}
+                            className="flex-1 rounded-lg border-2 border-border bg-muted px-2 py-1.5 text-[10px] font-bold hover:text-foreground"
+                          >
+                            No
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               {game.user ? (
@@ -611,7 +647,7 @@ export default function App() {
                         ['Win rate', `${game.stats.winRate}%`],
                         ['Avg guesses', game.stats.avgGuessesPerGame],
                         ['Best streak', game.stats.bestStreak],
-                        ['Elo Rating', game.stats.elo || 100],
+                        ['Elo Rating', game.stats.elo],
                       ].map(([k, v]) => (
                         <div
                           key={k}
@@ -1069,7 +1105,15 @@ export default function App() {
                         )}
                         {game.hasSetWord ? (
                           <span className="w-full mt-1 font-semibold text-primary">Locked in. Waiting for the other player…</span>
-                        ) : null}
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={game.getSuggestion}
+                            className="inline-flex items-center gap-1 mt-1 rounded-lg border-2 border-indigo-500/30 bg-indigo-500/10 px-3 py-1 text-xs font-bold text-indigo-500 hover:bg-indigo-500/20 transition-all active:scale-95"
+                          >
+                            🪄 Suggest a Word
+                          </button>
+                        )}
                       </p>
                       {!game.hasSetWord ? (
                         <>
@@ -1222,7 +1266,9 @@ export default function App() {
                       <p className="text-sm text-muted-foreground">
                         Winner: <button type="button" className="font-semibold text-foreground hover:text-primary transition-colors hover:underline" onClick={() => openProfileView(game.gameOver.winner)}>{game.gameOver.winner}</button>
                         {game.gameOver.endReason === 'disconnect' ? (
-                          <span className="block mt-1 text-xs">(opponent disconnected)</span>
+                          <span className="block mt-1 text-xs text-destructive/80 font-bold uppercase tracking-wider">(opponent disconnected)</span>
+                        ) : game.gameOver.endReason === 'forfeit' ? (
+                          <span className="block mt-1 text-xs text-destructive/80 font-bold uppercase tracking-wider">(surrendered)</span>
                         ) : null}
                       </p>
                       <div className="mt-6 rounded-lg border-2 border-border bg-popover p-4 text-left text-sm shadow-[var(--shadow-xs)]">
