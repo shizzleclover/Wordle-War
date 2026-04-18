@@ -1375,26 +1375,68 @@ export default function App() {
                         </p>
                       </div>
                       <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center">
-                        <button
-                          type="button"
-                          onClick={game.requestRematch}
-                          className="rounded-lg border-2 border-foreground bg-primary px-6 py-3 font-semibold text-primary-foreground shadow-[var(--shadow-md)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg active:scale-95"
-                        >
-                          Rematch
-                        </button>
-                        <button
-                          type="button"
-                          onClick={game.leaveRoom}
-                          className="rounded-lg border-2 border-border bg-popover px-6 py-3 font-semibold shadow-[var(--shadow-xs)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:scale-95"
-                        >
-                          Leave room
-                        </button>
+                        {game.rematchRequestedBy && !game.rematchPending ? (
+                          /* Opponent wants rematch — show Accept/Decline */
+                          <>
+                            <button
+                              type="button"
+                              onClick={game.requestRematch}
+                              className="rounded-lg border-2 border-foreground bg-primary px-6 py-3 font-semibold text-primary-foreground shadow-[var(--shadow-md)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg active:scale-95 animate-pulse"
+                            >
+                              ✅ Accept Rematch
+                            </button>
+                            <button
+                              type="button"
+                              onClick={game.leaveRoom}
+                              className="rounded-lg border-2 border-border bg-popover px-6 py-3 font-semibold shadow-[var(--shadow-xs)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:scale-95"
+                            >
+                              ❌ Decline
+                            </button>
+                            <p className="text-xs text-primary font-bold uppercase tracking-wider text-center sm:hidden mt-1">
+                              {game.rematchRequestedBy} wants a rematch!
+                            </p>
+                          </>
+                        ) : game.rematchPending ? (
+                          /* You requested — waiting */
+                          <>
+                            <button
+                              type="button"
+                              disabled
+                              className="rounded-lg border-2 border-foreground bg-primary/50 px-6 py-3 font-semibold text-primary-foreground shadow-[var(--shadow-md)] opacity-70 cursor-not-allowed"
+                            >
+                              Rematch Requested...
+                            </button>
+                            <button
+                              type="button"
+                              onClick={game.leaveRoom}
+                              className="rounded-lg border-2 border-border bg-popover px-6 py-3 font-semibold shadow-[var(--shadow-xs)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:scale-95"
+                            >
+                              Leave room
+                            </button>
+                            <p className="mt-1 text-xs text-muted-foreground text-center">
+                              Waiting for opponent to accept…
+                            </p>
+                          </>
+                        ) : (
+                          /* Neither has requested yet */
+                          <>
+                            <button
+                              type="button"
+                              onClick={game.requestRematch}
+                              className="rounded-lg border-2 border-foreground bg-primary px-6 py-3 font-semibold text-primary-foreground shadow-[var(--shadow-md)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg active:scale-95"
+                            >
+                              🔁 Rematch
+                            </button>
+                            <button
+                              type="button"
+                              onClick={game.leaveRoom}
+                              className="rounded-lg border-2 border-border bg-popover px-6 py-3 font-semibold shadow-[var(--shadow-xs)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:scale-95"
+                            >
+                              Leave room
+                            </button>
+                          </>
+                        )}
                       </div>
-                      {game.rematchPending || game.rematchRequestedBy ? (
-                        <p className="mt-3 text-xs text-muted-foreground">
-                          Waiting for opponent to accept rematch…
-                        </p>
-                      ) : null}
                     </div>
                   ) : null}
 
