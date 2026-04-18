@@ -161,6 +161,7 @@ function AuthCard({ onLogin, onRegister }) {
   const [mode, setMode] = useState('login')
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [err, setErr] = useState('')
   const [busy, setBusy] = useState(false)
 
@@ -179,7 +180,7 @@ function AuthCard({ onLogin, onRegister }) {
   }
 
   return (
-    <div className="rounded-xl border-2 border-border bg-popover p-6 shadow-[var(--shadow-md)] sm:p-8">
+    <div className="rounded-xl border-2 border-border bg-popover p-6 shadow-[var(--shadow-md)] sm:p-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="mb-6 flex gap-2 rounded-lg border-2 border-border bg-card p-1 shadow-[var(--shadow-xs)]">
         {['login', 'register'].map((m) => (
           <button
@@ -190,10 +191,10 @@ function AuthCard({ onLogin, onRegister }) {
               setErr('')
             }}
             className={[
-              'flex-1 rounded-md border-2 py-2 text-sm font-semibold capitalize transition',
+              'flex-1 rounded-md border-2 py-2 text-sm font-semibold capitalize transition-all duration-200',
               mode === m
                 ? 'border-primary bg-popover text-foreground shadow-[var(--shadow-xs)]'
-                : 'border-transparent text-muted-foreground',
+                : 'border-transparent text-muted-foreground hover:bg-secondary/30',
             ].join(' ')}
           >
             {m}
@@ -201,36 +202,58 @@ function AuthCard({ onLogin, onRegister }) {
         ))}
       </div>
       <form onSubmit={submit} className="flex flex-col gap-4">
-        <label className="block text-left text-sm font-medium text-foreground">
-          Username
+        <div>
+          <label htmlFor="username" className="block text-left text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1.5">
+            Username
+          </label>
           <input
+            id="username"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             autoComplete="username"
-            className="mt-1 w-full rounded-lg border-2 border-border bg-input px-3 py-2 font-sans text-foreground shadow-[var(--shadow-xs)] outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            placeholder="e.g. Gamer123"
+            className="w-full rounded-lg border-2 border-border bg-input px-3.5 py-2.5 font-sans text-sm text-foreground shadow-[var(--shadow-xs)] outline-none focus-visible:ring-2 focus-visible:ring-ring transition-all hover:border-primary/50"
           />
-        </label>
-        <label className="block text-left text-sm font-medium text-foreground">
-          Password
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
-            className="mt-1 w-full rounded-lg border-2 border-border bg-input px-3 py-2 font-sans text-foreground shadow-[var(--shadow-xs)] outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          />
-        </label>
+        </div>
+        <div>
+          <label htmlFor="password" className="block text-left text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1.5">
+            Password
+          </label>
+          <div className="relative group">
+            <input
+              id="password"
+              type={showPassword ? 'text' : 'password'}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="••••••••"
+              autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
+              className="w-full rounded-lg border-2 border-border bg-input pl-3.5 pr-11 py-2.5 font-sans text-sm text-foreground shadow-[var(--shadow-xs)] outline-none focus-visible:ring-2 focus-visible:ring-ring transition-all hover:border-primary/50"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-2 top-1/2 -translate-y-1/2 flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-all hover:bg-secondary hover:text-foreground active:scale-95"
+              title={showPassword ? 'Hide password' : 'Show password'}
+            >
+              {showPassword ? (
+                <span className="text-xl">🙈</span>
+              ) : (
+                <span className="text-xl">👁️</span>
+              )}
+            </button>
+          </div>
+        </div>
         {err ? (
-          <p className="rounded-lg border-2 border-destructive bg-destructive/10 px-3 py-2 text-sm text-destructive">
-            {err}
-          </p>
+          <div className="rounded-lg border-2 border-destructive bg-destructive/10 px-3 py-2.5 text-xs font-semibold text-destructive animate-in shake duration-300">
+            ⚠ {err}
+          </div>
         ) : null}
         <button
           type="submit"
           disabled={busy}
-          className={`rounded-lg border-2 border-foreground py-3 font-semibold shadow-[var(--shadow-md)] transition-all duration-300 hover:-translate-y-0.5 active:scale-95 ${busy ? 'bg-primary/50 text-foreground overflow-hidden relative animate-shimmer opacity-80' : 'bg-primary text-primary-foreground hover:shadow-lg hover:brightness-105'}`}
+          className={`mt-2 rounded-lg border-2 border-foreground py-3.5 font-bold shadow-[var(--shadow-md)] transition-all duration-300 hover:-translate-y-0.5 active:scale-95 ${busy ? 'bg-primary/50 text-foreground overflow-hidden relative animate-pulse opacity-80' : 'bg-primary text-primary-foreground hover:shadow-lg hover:brightness-110'}`}
         >
-          {busy ? (mode === 'login' ? 'Signing in...' : 'Registering...') : mode === 'login' ? 'Sign in' : 'Create account'}
+          {busy ? (mode === 'login' ? 'SIGNING IN...' : 'CREATING ACCOUNT...') : mode === 'login' ? 'SIGN IN' : 'CREATE ACCOUNT'}
         </button>
       </form>
     </div>

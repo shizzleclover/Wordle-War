@@ -287,15 +287,27 @@ export function useWarGame() {
       // Sync user elo locally and trigger background refetch for full stats
       setUser((curr) => {
         if (!curr) return null
-        return {
+        const updatedUser = {
           ...curr,
           stats: {
             ...curr.stats,
-            elo: payload.newElo || curr.stats.elo
+            elo: payload.newElo ?? curr.stats.elo
           }
         }
+        return updatedUser
       })
+
+      // Also update the stats state immediately if it's currently held
+      setStats((curr) => {
+        if (!curr) return null
+        return {
+          ...curr,
+          elo: payload.newElo ?? curr.elo
+        }
+      })
+
       void fetchMe()
+      void fetchStats()
     })
 
     socket.on('rematch-start', ({ wordLength: wl }) => {
