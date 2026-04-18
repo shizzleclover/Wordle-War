@@ -182,6 +182,26 @@ function App() {
     localStorage.setItem(DARK_KEY, String(darkMode))
   }, [darkMode])
 
+  // Asset load error handling (prevents 404 dead-ends after deployments)
+  useEffect(() => {
+    const handleError = (e) => {
+      const isChunkLoadError = 
+        e.message?.includes('Loading chunk') || 
+        e.message?.includes('Failed to fetch dynamically imported module') ||
+        (e.target && (e.target.tagName === 'SCRIPT' || e.target.tagName === 'LINK'))
+
+      if (isChunkLoadError) {
+        console.error('Asset load failure detected:', e)
+        if (window.confirm('A new version of Wordle War is available! Reload to update?')) {
+          window.location.reload()
+        }
+      }
+    }
+
+    window.addEventListener('error', handleError, true)
+    return () => window.removeEventListener('error', handleError, true)
+  }, [])
+
   // Sync tab with game phase
   useEffect(() => {
     if (game.uiPhase !== 'lobby' && activeTab !== 'play') {
