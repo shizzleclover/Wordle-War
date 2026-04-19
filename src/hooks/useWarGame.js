@@ -598,8 +598,9 @@ export function useWarGame() {
   }, [resetLobby])
 
   const joinMatchmaking = useCallback((wordLength, gameMode, theme, isDaily = false) => {
+    resetLobby()
     socketRef.current?.emit('join-matchmaking', { wordLength, gameMode, theme, isDaily })
-  }, [])
+  }, [resetLobby])
 
   const leaveMatchmaking = useCallback(() => {
     socketRef.current?.emit('leave-matchmaking')
