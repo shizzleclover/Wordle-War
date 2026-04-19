@@ -20,16 +20,36 @@ export function LobbyView({
       {!game.roomCode ? (
         <>
           {game.isMatchmaking ? (
-            <div className="flex flex-col items-center gap-4 py-8">
-              <h2 className="font-serif text-2xl font-semibold animate-pulse text-primary">Searching for opponent...</h2>
-              <p className="text-muted-foreground text-sm">Mode: {gameMode} • Theme: {theme} • Length: {lengthInput}</p>
-              <button
-                type="button"
-                onClick={game.leaveMatchmaking}
-                className="mt-4 rounded-lg border-2 border-border bg-destructive px-6 py-2 font-semibold text-destructive-foreground shadow-[var(--shadow-md)] transition-all active:scale-95"
-              >
-                Cancel Search
-              </button>
+            <div className="flex flex-col items-center gap-6 py-12">
+              <div className="relative flex h-32 w-32 items-center justify-center">
+                <div className="absolute inset-0 animate-ping rounded-full bg-primary/20" />
+                <div className="absolute inset-4 animate-pulse rounded-full bg-primary/40" />
+                <div className="relative flex h-16 w-16 items-center justify-center rounded-full bg-primary text-3xl text-primary-foreground shadow-lg">
+                  ⚔️
+                </div>
+              </div>
+              <div className="text-center">
+                <h2 className="font-serif text-2xl font-bold tracking-tight">Searching for opponent...</h2>
+                <p className="mt-1 text-xs font-bold uppercase tracking-widest text-muted-foreground opacity-60">
+                  {gameMode} • {theme} • {lengthInput} letters
+                </p>
+              </div>
+              <div className="flex flex-col gap-3 w-full max-w-[200px]">
+                <button
+                  type="button"
+                  onClick={() => game.joinMatchmaking(lengthInput, gameMode, theme)}
+                  className="rounded-xl border-2 border-primary/20 bg-secondary px-6 py-2.5 text-xs font-bold uppercase tracking-widest text-secondary-foreground transition-all hover:bg-secondary/80 active:scale-95 shadow-sm"
+                >
+                  🔄 Keep Searching
+                </button>
+                <button
+                  type="button"
+                  onClick={game.leaveMatchmaking}
+                  className="rounded-xl border-2 border-border bg-popover px-6 py-2.5 text-xs font-bold uppercase tracking-widest text-destructive transition-all hover:bg-destructive/10 active:scale-95 shadow-sm"
+                >
+                  Cancel Search
+                </button>
+              </div>
             </div>
           ) : (
             <>

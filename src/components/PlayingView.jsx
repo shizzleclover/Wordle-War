@@ -17,8 +17,8 @@ export function PlayingView({
         onClear={() => game.setIncomingReaction(null)} 
       />
       
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-        <h2 className="font-serif text-xl font-semibold sm:text-2xl flex items-center gap-2">
+      <div className="mb-2 sm:mb-4 flex flex-wrap items-center justify-between gap-1 sm:gap-2 text-xs sm:text-base">
+        <h2 className="font-serif text-base font-semibold sm:text-2xl flex items-center gap-1 sm:gap-2">
           vs 
           <button 
             type="button"
@@ -27,7 +27,7 @@ export function PlayingView({
           >
             {game.opponentName || 'Opponent'}
           </button>
-          <span className="bg-primary/20 text-primary border border-primary px-2 py-0.5 rounded text-sm min-w-[50px] text-center">
+          <span className="bg-primary/20 text-primary border border-primary px-1.5 py-0.5 rounded text-[10px] sm:text-sm min-w-[40px] sm:min-w-[50px] text-center">
             ⚡ {game.actionPoints || 0} AP
           </span>
         </h2>
@@ -55,9 +55,9 @@ export function PlayingView({
         </div>
       </div>
       
-      <p className="mb-4 text-sm text-muted-foreground">
-        Their guesses so far:{' '}
-        <span className="font-mono font-semibold text-foreground">{game.opponentGuessCount}</span>
+      <p className="mb-2 sm:mb-4 text-[10px] sm:text-sm text-muted-foreground uppercase font-bold tracking-tight">
+        Their guesses: {' '}
+        <span className="font-mono font-black text-foreground">{game.opponentGuessCount}</span>
       </p>
       
       <WordleBoard
@@ -72,13 +72,13 @@ export function PlayingView({
       
       {game.yourTurn ? (
         <>
-          <div className="my-4 flex items-center justify-center gap-2 border-y border-border py-3">
-            <span className="text-xs uppercase font-bold text-muted-foreground mr-2">Power-ups</span>
+          <div className="my-2 sm:my-4 flex items-center justify-center gap-1 sm:gap-2 border-y border-border py-2 sm:py-3">
+            <span className="hidden sm:inline text-[10px] uppercase font-bold text-muted-foreground mr-1">Powers</span>
             <button
               onClick={() => game.usePowerup('hint')}
               disabled={game.actionPoints < 3}
               title="Hint (Cost: 3 AP) - Reveal a letter"
-              className="rounded bg-sky-500/20 border border-sky-500 px-3 py-1.5 text-xs font-bold text-sky-600 disabled:opacity-30 transition-transform active:scale-95"
+              className="rounded bg-sky-500/20 border border-sky-500 px-1.5 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs font-bold text-sky-600 disabled:opacity-30 transition-transform active:scale-95"
             >
               💡 Hint (3)
             </button>
@@ -86,17 +86,17 @@ export function PlayingView({
               onClick={() => game.usePowerup('scramble')}
               disabled={game.actionPoints < 4}
               title="Scramble (Cost: 4 AP) - Shuffle their board"
-              className="rounded bg-purple-500/20 border border-purple-500 px-3 py-1.5 text-xs font-bold text-purple-600 disabled:opacity-30 transition-transform active:scale-95"
+              className="rounded bg-purple-500/20 border border-purple-500 px-1.5 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs font-bold text-purple-600 disabled:opacity-30 transition-transform active:scale-95"
             >
-              🌪️ Scramble (4)
+              🌪️ Scram (4)
             </button>
             <button
               onClick={() => game.usePowerup('blindfold')}
               disabled={game.actionPoints < 5}
               title="Blindfold (Cost: 5 AP) - Hide their keyboard"
-              className="rounded bg-stone-500/20 border border-stone-500 px-3 py-1.5 text-xs font-bold text-stone-600 disabled:opacity-30 transition-transform active:scale-95"
+              className="rounded bg-stone-500/20 border border-stone-500 px-1.5 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs font-bold text-stone-600 disabled:opacity-30 transition-transform active:scale-95"
             >
-              🙈 Blindfold (5)
+              🙈 Blind (5)
             </button>
           </div>
           <WarKeyboard

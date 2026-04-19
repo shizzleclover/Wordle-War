@@ -75,32 +75,39 @@ export function GameOverView({
       </div>
 
       <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center">
-        {game.rematchRequestedBy && !game.rematchPending ? (
+      <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center">
+        {game.rematchRequestedBy ? (
           <>
             <button
               type="button"
               onClick={game.requestRematch}
-              className="rounded-lg border-2 border-foreground bg-primary px-6 py-3 font-semibold text-primary-foreground shadow-[var(--shadow-md)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg active:scale-95 animate-pulse"
+              disabled={game.rematchPending}
+              className="rounded-lg border-2 border-foreground bg-primary px-6 py-3 font-semibold text-primary-foreground shadow-[var(--shadow-md)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg active:scale-95 animate-pulse disabled:opacity-80"
             >
-              ✅ Accept Rematch
+              {game.rematchPending ? '⏳ Accepting Rematch...' : '✅ Accept Rematch'}
             </button>
-            <button
-              type="button"
-              onClick={game.leaveRoom}
-              className="rounded-lg border-2 border-border bg-popover px-6 py-3 font-semibold shadow-[var(--shadow-xs)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:scale-95"
-            >
-              ❌ Decline
-            </button>
+            {!game.rematchPending && (
+              <button
+                type="button"
+                onClick={game.leaveRoom}
+                className="rounded-lg border-2 border-border bg-popover px-6 py-3 font-semibold shadow-[var(--shadow-xs)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:scale-95"
+              >
+                ❌ Decline
+              </button>
+            )}
           </>
         ) : game.rematchPending ? (
           <>
-            <button
-              type="button"
-              disabled
-              className="rounded-lg border-2 border-foreground bg-primary/50 px-6 py-3 font-semibold text-primary-foreground shadow-[var(--shadow-md)] opacity-70 cursor-not-allowed"
-            >
-              Rematch Requested...
-            </button>
+            <div className="flex flex-col items-center gap-2">
+              <button
+                type="button"
+                disabled
+                className="rounded-lg border-2 border-foreground bg-primary/50 px-6 py-3 font-semibold text-primary-foreground shadow-[var(--shadow-md)] opacity-70 cursor-not-allowed"
+              >
+                🔄 Rematch Requested...
+              </button>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground animate-pulse">Waiting for opponent</p>
+            </div>
             <button
               type="button"
               onClick={game.leaveRoom}
@@ -129,5 +136,5 @@ export function GameOverView({
         )}
       </div>
     </div>
-  )
-}
+    </div>
+  )}

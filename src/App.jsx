@@ -182,6 +182,18 @@ function App() {
     localStorage.setItem(DARK_KEY, String(darkMode))
   }, [darkMode])
 
+  const typeLetter = useCallback((letter) => {
+    if (game.uiPhase === 'setup') {
+      if (game.secretDraft.length < game.wordLength) {
+        game.setSecretDraft((d) => d + letter)
+      }
+    } else if (game.uiPhase === 'playing' && game.yourTurn) {
+      if (game.draftGuess.length < game.wordLength) {
+        game.setDraftGuess((d) => d + letter)
+      }
+    }
+  }, [game.uiPhase, game.yourTurn, game.secretDraft, game.draftGuess, game.wordLength, game.setSecretDraft, game.setDraftGuess])
+
   // Asset load error handling (prevents 404 dead-ends after deployments)
   useEffect(() => {
     const handleError = (e) => {
@@ -202,6 +214,38 @@ function App() {
     return () => window.removeEventListener('error', handleError, true)
   }, [])
 
+  // Physical Keyboard Support
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return
+
+      const key = e.key.toUpperCase()
+
+      if (key === 'ENTER') {
+        if (game.uiPhase === 'setup') {
+          if (game.secretDraft.length === game.wordLength) {
+            game.submitSecretWord(game.secretDraft.toLowerCase())
+          }
+        } else if (game.uiPhase === 'playing' && game.yourTurn) {
+          if (game.draftGuess.length === game.wordLength) {
+            game.submitGuess(game.draftGuess.toLowerCase())
+          }
+        }
+      } else if (key === 'BACKSPACE') {
+        if (game.uiPhase === 'setup') {
+          game.setSecretDraft((d) => d.slice(0, -1))
+        } else if (game.uiPhase === 'playing' && game.yourTurn) {
+          game.setDraftGuess((d) => d.slice(0, -1))
+        }
+      } else if (/^[A-Z]$/.test(key)) {
+        typeLetter(key)
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [game.uiPhase, game.yourTurn, game.secretDraft, game.draftGuess, game.wordLength, typeLetter, game.submitSecretWord, game.submitGuess, game.setSecretDraft, game.setDraftGuess])
+
   // Sync tab with game phase
   useEffect(() => {
     if (game.uiPhase !== 'lobby' && activeTab !== 'play') {
@@ -217,18 +261,6 @@ function App() {
       game.fetchDailyInfo()
     }
   }, [game.socketConnected, game.user, game.fetchDailyInfo])
-
-  const typeLetter = (letter) => {
-    if (game.uiPhase === 'setup') {
-      if (game.secretDraft.length < game.wordLength) {
-        game.setSecretDraft((d) => d + letter)
-      }
-    } else if (game.uiPhase === 'playing' && game.yourTurn) {
-      if (game.draftGuess.length < game.wordLength) {
-        game.setDraftGuess((d) => d + letter)
-      }
-    }
-  }
 
   const openProfileView = (username) => {
     if (!username) return

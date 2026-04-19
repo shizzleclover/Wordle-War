@@ -14,7 +14,7 @@ function BoardTile({ letter, state, index, animate }) {
   return (
     <div
       className={[
-        'flex h-12 w-12 items-center justify-center rounded-lg border-2 text-xl font-bold uppercase transition-all duration-500',
+        'flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-lg border-2 text-xl font-bold uppercase transition-all duration-500',
         stateClasses[state || 'empty'],
         animate ? 'animate-flip' : ''
       ].join(' ')}

@@ -8,14 +8,14 @@ const ROWS = [
 
 export function WarKeyboard({ letterStates, onKey, onBackspace, onEnter, enterDisabled, isBlindfolded }) {
   return (
-    <div className="mt-4 flex w-full flex-col gap-1.5 sm:gap-2 relative">
+    <div className="mt-4 flex w-full flex-col gap-1 sm:gap-2 relative">
       {isBlindfolded && (
         <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/50 rounded-lg backdrop-blur-sm pointer-events-none">
           <span className="text-white font-bold text-lg">🙈 BLINDFOLDED</span>
         </div>
       )}
       {ROWS.map((row, ri) => (
-        <div key={ri} className="flex justify-center gap-0.5 sm:gap-1">
+        <div key={ri} className="flex justify-center gap-1 sm:gap-1">
           {ri === 2 && (
             <button
               type="button"
