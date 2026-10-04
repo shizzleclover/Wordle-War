@@ -55,10 +55,23 @@ export function PlayingView({
         </div>
       </div>
       
-      <p className="mb-2 sm:mb-4 text-[10px] sm:text-sm text-muted-foreground uppercase font-bold tracking-tight">
-        Their guesses: {' '}
-        <span className="font-mono font-black text-foreground">{game.opponentGuessCount}</span>
-      </p>
+      <div className="mb-2 sm:mb-4 flex flex-col sm:flex-row justify-between gap-4">
+        <div>
+          <p className="text-[10px] sm:text-sm text-muted-foreground uppercase font-bold tracking-tight">
+            Their guesses: {' '}
+            <span className="font-mono font-black text-foreground">{game.opponentGuessCount}</span>
+          </p>
+          {game.opponentGuesses && game.opponentGuesses.length > 0 && (
+            <div className="mt-2 scale-75 origin-top-left opacity-80">
+              <WordleBoard
+                wordLength={game.wordLength}
+                guesses={game.opponentGuesses}
+                currentDraft={null}
+              />
+            </div>
+          )}
+        </div>
+      </div>
       
       <WordleBoard
         wordLength={game.wordLength}

@@ -32,6 +32,7 @@ export function useWarGame() {
   const [secretDraft, setSecretDraft] = useState('')
   const [hasSetWord, setHasSetWord] = useState(false)
   const [opponentGuessCount, setOpponentGuessCount] = useState(0)
+  const [opponentGuesses, setOpponentGuesses] = useState([])
   const [gameOver, setGameOver] = useState(null)
   const [rematchRequestedBy, setRematchRequestedBy] = useState(null)
   const [rematchPending, setRematchPending] = useState(false)
@@ -39,6 +40,13 @@ export function useWarGame() {
   const [stats, setStats] = useState(null)
   const [statsOpen, setStatsOpen] = useState(false)
   const [isMatchmaking, setIsMatchmaking] = useState(false)
+  const isMatchmakingRef = useRef(false)
+  
+  const updateMatchmaking = useCallback((val) => {
+    isMatchmakingRef.current = val
+    setIsMatchmaking(val)
+  }, [])
+  
   const [gameMode, setGameMode] = useState('standard')
   const [turnStartedAt, setTurnStartedAt] = useState(null)
   const [timeRemaining, setTimeRemaining] = useState(null)
@@ -85,12 +93,13 @@ export function useWarGame() {
     setSecretDraft('')
     setHasSetWord(false)
     setOpponentGuessCount(0)
+    setOpponentGuesses([])
     setGameOver(null)
     lastGameOverRef.current = null
     setRematchRequestedBy(null)
     setRematchPending(false)
     setDisconnectBanner(null)
-    setIsMatchmaking(false)
+    updateMatchmaking(false)
     setActionPoints(0)
     setIsScrambled(false)
     setIsBlindfolded(false)
@@ -110,11 +119,12 @@ export function useWarGame() {
       setHasSetWord(Boolean(s.you?.hasSetWord))
       setDraftGuess('')
       setOpponentGuessCount(opp?.guessCount ?? 0)
+      setOpponentGuesses(opp?.guesses || [])
       setGameMode(s.gameMode || 'standard')
       setTurnStartedAt(s.turnStartedAt || null)
       setActionPoints(s.you?.actionPoints || 0)
       setUiPhase(mapPhaseToUi(s.phase, oc))
-      setIsMatchmaking(false)
+      updateMatchmaking(false)
       if (s.phase === 'finished' && lastGameOverRef.current) {
         setGameOver(lastGameOverRef.current)
       }
@@ -191,17 +201,20 @@ export function useWarGame() {
 
     socket.on('room-state', (s) => {
       applyRoomState(s)
-      setIsMatchmaking(false) // Extra safety to clear overlay
+      updateMatchmaking(false) // Extra safety to clear overlay
     })
 
     socket.on('match-found', ({ roomCode, isBot }) => {
-      setRoomCode(roomCode)
-      setIsMatchmaking(false)
       if (isBot) {
-        showToast('Opponent found! (AI Bot)')
+        if (isMatchmakingRef.current) {
+          showToast("It's taking a while, so we found an AI opponent for you!")
+        } else {
+          showToast('Starting match against AI...')
+        }
       } else {
         showToast('Match found!')
       }
+      updateMatchmaking(false)
       socket.emit('request-room-state')
     })
 
@@ -212,7 +225,7 @@ export function useWarGame() {
       setPlayerCount(1)
       setPlayers([{ username: user.username, ready: false, disconnected: false }])
       setUiPhase('lobby')
-      setIsMatchmaking(false) // Success means we aren't searching
+      updateMatchmaking(false) // Success means we aren't searching
       showToast(`Room ${code} created — share the code`)
     })
 
@@ -222,7 +235,7 @@ export function useWarGame() {
       if (wl) setWordLength(wl)
       if (th) setTheme(th)
       setUiPhase(mapPhaseToUi(phase, pc ?? pl?.length ?? 0))
-      setIsMatchmaking(false) // We found/joined a room
+      updateMatchmaking(false) // We found/joined a room
     })
 
     socket.on('word-set', () => {
@@ -245,6 +258,7 @@ export function useWarGame() {
       setOpponentName(on || '')
       setYourTurn(yt)
       setGuesses([])
+      setOpponentGuesses([])
       setDraftGuess('')
       setActionPoints(0)
       setIsScrambled(false)
@@ -259,7 +273,7 @@ export function useWarGame() {
       if (typeof ap === 'number') setActionPoints(ap)
     })
 
-    socket.on('turn-update', ({ yourTurn: yt, opponentGuessCount: ogc, turnStartedAt: tsa, actionPoints: ap }) => {
+    socket.on('turn-update', ({ yourTurn: yt, opponentGuessCount: ogc, turnStartedAt: tsa, actionPoints: ap, lastOpponentGuess }) => {
       setYourTurn((prev) => {
         if (!prev && yt) {
           // It became our turn. Unset statuses.
@@ -269,6 +283,7 @@ export function useWarGame() {
         return yt
       })
       if (typeof ogc === 'number') setOpponentGuessCount(ogc)
+      if (lastOpponentGuess) setOpponentGuesses((prev) => [...prev, lastOpponentGuess])
       setTurnStartedAt(tsa || null)
       if (typeof ap === 'number') setActionPoints(ap)
     })
@@ -381,11 +396,11 @@ export function useWarGame() {
     })
 
     socket.on('matchmaking-joined', () => {
-      setIsMatchmaking(true)
+      updateMatchmaking(true)
     })
 
     socket.on('matchmaking-left', () => {
-      setIsMatchmaking(false)
+      updateMatchmaking(false)
     })
 
 
@@ -619,8 +634,8 @@ export function useWarGame() {
 
   const leaveMatchmaking = useCallback(() => {
     socketRef.current?.emit('leave-matchmaking')
-    setIsMatchmaking(false)
-  }, [])
+    updateMatchmaking(false)
+  }, [updateMatchmaking])
 
   const forfeitGame = useCallback(() => {
     if (socketRef.current) {
@@ -711,6 +726,7 @@ export function useWarGame() {
     setSecretDraft,
     hasSetWord,
     opponentGuessCount,
+    opponentGuesses,
     gameOver,
     rematchRequestedBy,
     rematchPending,

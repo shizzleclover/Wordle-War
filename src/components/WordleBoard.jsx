@@ -26,9 +26,9 @@ function BoardTile({ letter, state, index, animate }) {
 }
 
 export function WordleBoard({ wordLength, guesses = [], currentDraft = null }) {
-  const rows = 6
-  // Ensure we don't have negative count
-  const emptyRowsCount = Math.max(0, rows - guesses.length - (currentDraft !== null ? 1 : 0))
+  const currentRows = guesses.length + (currentDraft !== null ? 1 : 0)
+  const targetRows = Math.max(6, currentRows + (currentDraft !== null ? 0 : 1))
+  const emptyRowsCount = targetRows - currentRows
 
   return (
     <div className="flex flex-col gap-2">
