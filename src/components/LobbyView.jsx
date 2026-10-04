@@ -176,17 +176,30 @@ export function LobbyView({
                       🎲 Surprise Match (Random)
                     </button>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const n = parseWordLengthInput(lengthInput)
-                      game.createRoom(n, gameMode, theme)
-                    }}
-                    disabled={!game.socketConnected}
-                    className="w-full rounded-lg border-2 border-border bg-popover px-5 py-3 font-semibold text-muted-foreground shadow-[var(--shadow-xs)] transition-all duration-200 hover:-translate-y-0.5 hover:text-foreground hover:shadow-md active:scale-95 disabled:opacity-50"
-                  >
-                    🔗 Play with Friend (Private)
-                  </button>
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const n = parseWordLengthInput(lengthInput)
+                        game.playVsBot(n, gameMode, theme)
+                      }}
+                      disabled={!game.socketConnected}
+                      className="w-full sm:flex-1 rounded-lg border-2 border-green-500/50 bg-green-500/10 px-5 py-3 font-semibold text-green-600 shadow-[var(--shadow-xs)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-green-500/20 hover:shadow-md active:scale-95 disabled:opacity-50"
+                    >
+                      🤖 Play vs Bot
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const n = parseWordLengthInput(lengthInput)
+                        game.createRoom(n, gameMode, theme)
+                      }}
+                      disabled={!game.socketConnected}
+                      className="w-full sm:flex-1 rounded-lg border-2 border-border bg-popover px-5 py-3 font-semibold text-muted-foreground shadow-[var(--shadow-xs)] transition-all duration-200 hover:-translate-y-0.5 hover:text-foreground hover:shadow-md active:scale-95 disabled:opacity-50"
+                    >
+                      🔗 Play with Friend (Private)
+                    </button>
+                  </div>
                 </div>
               </div>
             </>

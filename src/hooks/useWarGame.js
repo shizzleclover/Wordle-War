@@ -194,10 +194,14 @@ export function useWarGame() {
       setIsMatchmaking(false) // Extra safety to clear overlay
     })
 
-    socket.on('match-found', ({ roomCode }) => {
+    socket.on('match-found', ({ roomCode, isBot }) => {
       setRoomCode(roomCode)
       setIsMatchmaking(false)
-      showToast('Match found!')
+      if (isBot) {
+        showToast('Opponent found! (AI Bot)')
+      } else {
+        showToast('Match found!')
+      }
       socket.emit('request-room-state')
     })
 
@@ -300,10 +304,12 @@ export function useWarGame() {
       
       if (payload.result === 'win') {
         const msg = payload.endReason === 'forfeit' ? 'OPPONENT FORFEITED! YOU WIN' : 'YOU WIN!'
-        showToast(`${msg} +${payload.eloChange || 0} EP`)
+        const eloMsg = payload.eloChange === 0 ? '(Unranked)' : `+${payload.eloChange || 0} EP`
+        showToast(`${msg} ${eloMsg}`)
       } else if (payload.result === 'loss') {
         const msg = payload.endReason === 'forfeit' ? 'YOU FORFEITED. YOU LOST' : 'YOU LOST.'
-        showToast(`${msg} ${payload.eloChange || 0} EP`)
+        const eloMsg = payload.eloChange === 0 ? '(Unranked)' : `${payload.eloChange || 0} EP`
+        showToast(`${msg} ${eloMsg}`)
       } else {
         showToast('MATCH DRAWN')
       }
@@ -606,6 +612,11 @@ export function useWarGame() {
     socketRef.current?.emit('join-matchmaking', { wordLength, gameMode, theme, isDaily })
   }, [resetLobby])
 
+  const playVsBot = useCallback((wordLength, gameMode, theme) => {
+    resetLobby()
+    socketRef.current?.emit('play-vs-bot', { wordLength, gameMode, theme })
+  }, [resetLobby])
+
   const leaveMatchmaking = useCallback(() => {
     socketRef.current?.emit('leave-matchmaking')
     setIsMatchmaking(false)
@@ -723,6 +734,7 @@ export function useWarGame() {
     isMatchmaking,
     joinMatchmaking,
     leaveMatchmaking,
+    playVsBot,
     gameMode,
     timeRemaining,
     actionPoints,
