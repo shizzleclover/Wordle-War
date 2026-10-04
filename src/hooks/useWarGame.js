@@ -65,8 +65,12 @@ export function useWarGame() {
 
   const showToast = useCallback((message, type = 'info') => {
     const id = Math.random().toString(36).substring(2, 9)
-    setToasts(prev => [...prev.slice(-4), { id, message, type }]) // Keep last 5
-    setTimeout(() => removeToast(id), 5000)
+    setToasts((prev) => {
+      // Prevent spamming the same error message
+      if (prev.some((t) => t.message === message)) return prev
+      return [...prev.slice(-2), { id, message, type }] // Keep max 3
+    })
+    setTimeout(() => removeToast(id), 3000)
   }, [removeToast])
 
   const resetLobby = useCallback(() => {

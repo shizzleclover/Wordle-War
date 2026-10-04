@@ -2,7 +2,7 @@ export const TOKEN_KEY = 'wordle-duel-token'
 
 /** API + Socket.IO base (no trailing slash). */
 function apiBase() {
-  return 'https://wordle-war-be-production.up.railway.app'
+  return import.meta.env.VITE_API_URL || 'https://wordle-war-be-production.up.railway.app'
 }
 
 export function getSocketUrl() {
