@@ -32,6 +32,18 @@ export function PlayingView({
           </span>
         </h2>
         <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => {
+              if (window.confirm('Are you sure you want to forfeit? You will lose Elo points.')) {
+                game.forfeitGame()
+              }
+            }}
+            className="rounded-full border-2 border-destructive px-3 py-1 text-xs font-bold uppercase text-destructive hover:bg-destructive hover:text-destructive-foreground transition-colors"
+            title="Forfeit Match"
+          >
+            Forfeit
+          </button>
           {game.gameMode === 'blitz' && game.timeRemaining !== null ? (
             <span
               className={[

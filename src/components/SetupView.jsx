@@ -9,7 +9,17 @@ export function SetupView({
 }) {
   return (
     <div className="mx-auto max-w-lg">
-      <h2 className="mb-2 font-serif text-2xl font-semibold">Pick your secret word</h2>
+      <div className="flex items-center justify-between mb-2">
+        <h2 className="font-serif text-2xl font-semibold">Pick your secret word</h2>
+        <button
+          type="button"
+          onClick={game.leaveRoom}
+          className="text-muted-foreground hover:text-destructive transition-colors rounded-full p-1 hover:bg-destructive/10"
+          title="Quit Game"
+        >
+          ✕
+        </button>
+      </div>
       <p className="mb-4 text-sm text-muted-foreground flex flex-wrap items-center gap-y-1 gap-x-2">
         <span>{game.wordLength} letters</span>
         <span>—</span>
